@@ -4,6 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="description" content="DeepTime Sauropsida - 一个交互式现生蜥形纲演化时间树项目，展示龟鳖、喙头蜥、鳄类、鸟类与有鳞类的系统关系。">
+    <script>
+        (function() {
+            if (!/^https?:$/.test(window.location.protocol)) return;
+            if (!window.location.hostname.endsWith('github.io')) return;
+
+            const pathParts = window.location.pathname.split('/').filter(Boolean);
+            if (pathParts.length === 0) return;
+
+            const base = document.createElement('base');
+            base.href = '/' + pathParts[0] + '/';
+            document.head.appendChild(base);
+        })();
+    </script>
     <link rel="icon" href="assets/logo.png" type="image/png">
     <title>现生蜥形纲 - Sauropsida Tree</title>
 

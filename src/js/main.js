@@ -44,6 +44,7 @@ function loadImageData() {
         };
         script.onerror = () => {
             console.warn('图片数据加载失败，将继续使用本地文件路径');
+            refreshRenderedImages();
             resolve();
         };
         document.head.appendChild(script);
