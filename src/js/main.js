@@ -1050,6 +1050,7 @@ class EvolutionTree {
         assignPostOrder(root);
         separateSiblings(root);
         this.spreadFreeGhostLeaves(root);
+        this.enforceGhostSiblingOrder(root);
         this.recenterFreeGhostAncestors(root);
     }
 
@@ -1080,6 +1081,67 @@ class EvolutionTree {
                 node.gy += recenterOffset;
             });
         });
+    }
+
+    getGhostSubtreeBounds(node) {
+        let minY = Number.isFinite(node.gy) ? node.gy : 0;
+        let maxY = minY;
+
+        (node.children || []).forEach(child => {
+            const childBounds = this.getGhostSubtreeBounds(child);
+            minY = Math.min(minY, childBounds.minY);
+            maxY = Math.max(maxY, childBounds.maxY);
+        });
+
+        return { minY, maxY };
+    }
+
+    shiftGhostSubtree(node, delta) {
+        node.gy += delta;
+        (node.children || []).forEach(child => this.shiftGhostSubtree(child, delta));
+    }
+
+    enforceGhostSiblingOrder(node) {
+        const children = node.children || [];
+        if (!children.length) return;
+
+        children.forEach(child => this.enforceGhostSiblingOrder(child));
+
+        if (children.length === 1) {
+            if (!node.data.isAlignedToLive) {
+                node.gy = children[0].gy;
+            }
+            return;
+        }
+
+        const originalCenter = d3.mean(children, child => child.gy);
+        const subtreeGap = isMobile() ? 26 : 34;
+        const bounds = children.map(child => ({
+            child,
+            ...this.getGhostSubtreeBounds(child)
+        }));
+
+        for (let index = 1; index < bounds.length; index++) {
+            const previous = bounds[index - 1];
+            const current = bounds[index];
+            const delta = previous.maxY + subtreeGap - current.minY;
+
+            if (delta > 0) {
+                this.shiftGhostSubtree(current.child, delta);
+                current.minY += delta;
+                current.maxY += delta;
+            }
+        }
+
+        const shiftedCenter = d3.mean(children, child => child.gy);
+        const recenterOffset = originalCenter - shiftedCenter;
+        if (Math.abs(recenterOffset) > 0.01) {
+            children.forEach(child => this.shiftGhostSubtree(child, recenterOffset));
+        }
+
+        if (!node.data.isAlignedToLive) {
+            node.gy = d3.mean(children, child => child.gy);
+        }
     }
 
     buildRoundedOrthogonalPath(points, maxRadius = isMobile() ? 8 : 12) {
@@ -1290,6 +1352,7 @@ class EvolutionTree {
                         continue;
                     }
 
+                    this.enforceGhostSiblingOrder(ghostRoot);
                     moved = true;
                     break outer;
                 }
