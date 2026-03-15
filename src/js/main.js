@@ -1141,51 +1141,6 @@ class EvolutionTree {
         ]);
     }
 
-    buildGhostSegments(root) {
-        const segments = [];
-
-        root.descendants().forEach(node => {
-            const children = node.children || [];
-            if (!children.length) return;
-
-            const orderedChildren = [...children].sort((a, b) => a.gy - b.gy);
-
-            if (orderedChildren.length > 1) {
-                segments.push({
-                    kind: "trunk",
-                    node,
-                    hasSurvivorPath: Boolean(node.data.hasSurvivorPath),
-                    y1: orderedChildren[0].gy,
-                    y2: orderedChildren[orderedChildren.length - 1].gy
-                });
-            }
-
-            orderedChildren.forEach(child => {
-                segments.push({
-                    kind: "branch",
-                    source: node,
-                    target: child,
-                    siblingCount: orderedChildren.length,
-                    hasSurvivorPath: Boolean(child.data.hasSurvivorPath)
-                });
-            });
-        });
-
-        return segments;
-    }
-
-    getGhostSegmentPath(segment) {
-        if (segment.kind === "trunk") {
-            return `M ${segment.node.gx} ${segment.y1} L ${segment.node.gx} ${segment.y2}`;
-        }
-
-        if (segment.siblingCount > 1) {
-            return `M ${segment.source.gx} ${segment.target.gy} L ${segment.target.gx} ${segment.target.gy}`;
-        }
-
-        return this.ghostCurve(segment.source, segment.target);
-    }
-
     refreshGhostLanguage() {
         if (!this.g) return;
         this.g.selectAll('.node.ghost text')
@@ -1236,7 +1191,7 @@ class EvolutionTree {
     refreshGhostGeometry(ghostGroup, gNodes) {
         gNodes.attr("transform", d => `translate(${d.gx},${d.gy})`);
         ghostGroup.selectAll(".link.ghost.ghost-branch")
-            .attr("d", d => this.getGhostSegmentPath(d));
+            .attr("d", d => this.ghostCurve(d.source, d.target));
         const presentX = this.ghostTimeScale
             ? this.getGhostTimePosition(0, this.ghostTimeScale)
             : this.getGhostTreeWidth();
@@ -1364,22 +1319,20 @@ class EvolutionTree {
             .attr("class", "ghost-layer");
 
         const getGhostLinkClass = (d) => {
-            if (d.hasSurvivorPath) return "link ghost survivor-line";
+            if (d.target.data.hasSurvivorPath) return "link ghost survivor-line";
             return "link ghost";
         };
 
-        const ghostSegments = this.buildGhostSegments(ghostRoot);
-
         ghostGroup.selectAll(".link.ghost.ghost-branch")
-            .data(ghostSegments)
+            .data(ghostRoot.links())
             .enter()
             .append("path")
             .attr("class", d => `${getGhostLinkClass(d)} ghost-branch`)
-            .attr("d", d => this.getGhostSegmentPath(d))
+            .attr("d", d => this.ghostCurve(d.source, d.target))
             .style("opacity", 0)
             .transition()
             .duration(2000)
-            .style("opacity", d => d.hasSurvivorPath ? 0.8 : 0.3);
+            .style("opacity", d => d.target.data.hasSurvivorPath ? 0.8 : 0.3);
 
         const survivorExtensions = ghostRoot.descendants()
             .filter(d => d.data.survivor && d.children && !d.children.some(child => child.data.hasSurvivorPath));
