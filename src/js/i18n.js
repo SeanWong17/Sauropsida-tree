@@ -219,9 +219,38 @@ function getLocalizedRankLabel(rank) {
 
 function getComplementaryName(data) {
     if (currentLanguage === 'en') {
-        return data.cn_name || data.family_cn || '';
+        return data.cn_name || data.family_cn || data.cn || '';
     }
-    return data.en_name || data.family_en || '';
+    return data.en_name || data.family_en || data.name || '';
+}
+
+function translateTimeRangeToEnglish(timeRange) {
+    if (!timeRange) return '';
+
+    return String(timeRange)
+        .trim()
+        .replace(/^约\s*/, 'ca. ')
+        .replace(/(\d+(?:\.\d+)?)\s*Ma\s*起并延续至今/g, '$1 Ma to present')
+        .replace(/(\d+(?:\.\d+)?)\s*Ma\s*起$/g, '$1 Ma onward')
+        .replace(/白垩纪冠群起源至今/g, 'Cretaceous crown origin to present')
+        .replace(/三叠纪起源，现仅残存极少数后裔/g, 'Originated in the Triassic; only a few relict descendants survive today')
+        .replace(/三叠纪/g, 'Triassic')
+        .replace(/侏罗纪/g, 'Jurassic')
+        .replace(/白垩纪/g, 'Cretaceous')
+        .replace(/古近纪/g, 'Paleogene')
+        .replace(/新近纪/g, 'Neogene')
+        .replace(/并延续至今/g, ' to present')
+        .replace(/至今/g, 'to present');
+}
+
+function getLocalizedTimeRange(data) {
+    if (!data) return '';
+
+    if (currentLanguage === 'en') {
+        return data.time_range_en || translateTimeRangeToEnglish(data.time_range_cn || data.time_range || '');
+    }
+
+    return data.time_range_cn || data.time_range || '';
 }
 
 /**
@@ -241,13 +270,15 @@ function getLocalizedText(data, field) {
                 return data.en_name;
             } else if (data.family_en) {
                 return data.family_en;
+            } else if (data.name) {
+                return data.name;
             } else {
                 // 如果都没有，显示拉丁学名（通常是键名）
-                return data.cn_name || data.family_cn || 'Unknown';
+                return data.cn_name || data.family_cn || data.cn || 'Unknown';
             }
         } else {
             // 中文模式
-            return data.cn_name || data.family_cn || data.en_name || data.family_en || '未命名';
+            return data.cn_name || data.family_cn || data.cn || data.en_name || data.family_en || data.name || '未命名';
         }
     } else if (field === 'description') {
         // 描述字段

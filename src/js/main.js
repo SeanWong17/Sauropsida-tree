@@ -386,6 +386,9 @@ class EvolutionTree {
         this.geologicalEpochs = getConfig('geologicalEpochs');
         this.isEasterEggActive = false;
         this.ghostData = (typeof EASTER_EGG_DATA !== 'undefined') ? EASTER_EGG_DATA : null;
+        this.ghostRoot = null;
+        this.ghostGroup = null;
+        this.ghostNodes = null;
         this.savedTransform = null;
         this.skipHandler = null;
         this.textTimer = null;
@@ -886,10 +889,15 @@ class EvolutionTree {
 
         const btn = document.getElementById('origin-btn');
         const exitBtn = document.getElementById('exit-egg-btn');
+        const githubLink = document.getElementById('github-link');
 
         if (btn) {
             btn.style.display = 'block';
             btn.onclick = () => this.triggerEasterEgg();
+        }
+
+        if (githubLink) {
+            githubLink.style.display = 'flex';
         }
 
         if (exitBtn) {
@@ -1213,9 +1221,15 @@ class EvolutionTree {
     }
 
     refreshGhostLanguage() {
-        if (!this.g) return;
-        this.g.selectAll('.node.ghost text')
+        if (!this.ghostGroup || !this.ghostNodes || !this.ghostRoot) return;
+
+        this.ghostNodes.select('text')
+            .attr("x", d => d.children ? -12 : 12)
+            .attr("text-anchor", d => d.children ? "end" : "start")
             .text(d => this.getGhostDisplayName(d.data));
+
+        this.resolveGhostCollisions(this.ghostGroup, this.ghostNodes, this.ghostRoot);
+        this.updateGhostTranslateExtent(this.measureGhostBounds(this.ghostNodes, this.ghostRoot));
     }
 
     getMainTreeSelection() {
@@ -1268,6 +1282,22 @@ class EvolutionTree {
             : this.getGhostTreeWidth();
         ghostGroup.selectAll(".link.ghost.survivor-extension")
             .attr("d", d => `M ${d.gx} ${d.gy} L ${presentX} ${d.gy}`);
+    }
+
+    updateGhostTranslateExtent(bounds) {
+        const minX = bounds.minX - (isMobile() ? 24 : 32);
+        const maxX = bounds.maxX + (isMobile() ? 36 : 48);
+        const minY = bounds.minY - (isMobile() ? 28 : 36);
+        const maxY = bounds.maxY + (isMobile() ? 36 : 44);
+        const extentPaddingX = Math.max(window.innerWidth * (isMobile() ? 0.4 : 0.5), isMobile() ? 180 : 260);
+        const extentPaddingY = Math.max(window.innerHeight * (isMobile() ? 0.32 : 0.4), isMobile() ? 140 : 220);
+
+        this.setZoomTranslateExtent([
+            [minX - extentPaddingX, minY - extentPaddingY],
+            [maxX + extentPaddingX, maxY + extentPaddingY]
+        ]);
+
+        return { minX, maxX, minY, maxY };
     }
 
     collectGhostBoxes(gNodes) {
@@ -1389,6 +1419,8 @@ class EvolutionTree {
         this.assignGhostCoordinates(ghostRoot);
         const ghostGroup = this.g.insert("g", ":first-child")
             .attr("class", "ghost-layer");
+        this.ghostRoot = ghostRoot;
+        this.ghostGroup = ghostGroup;
 
         const getGhostLinkClass = (d) => {
             if (d.target.data.hasSurvivorPath) return "link ghost survivor-line";
@@ -1433,6 +1465,7 @@ class EvolutionTree {
                 e.stopPropagation();
                 if (this.onNodeClick) this.onNodeClick(d.data);
             });
+        this.ghostNodes = gNodes;
 
         gNodes.append("circle")
             .attr("r", 4)
@@ -1454,18 +1487,9 @@ class EvolutionTree {
         this.resolveGhostCollisions(ghostGroup, gNodes, ghostRoot);
 
         const bounds = this.measureGhostBounds(gNodes, ghostRoot);
-        const minX = bounds.minX - (isMobile() ? 24 : 32);
-        const maxX = bounds.maxX + (isMobile() ? 36 : 48);
-        const minY = bounds.minY - (isMobile() ? 28 : 36);
-        const maxY = bounds.maxY + (isMobile() ? 36 : 44);
+        const { minX, maxX, minY, maxY } = this.updateGhostTranslateExtent(bounds);
         const viewWidth = Math.max(1, maxX - minX);
         const viewHeight = Math.max(1, maxY - minY);
-        const extentPaddingX = Math.max(window.innerWidth * (isMobile() ? 0.4 : 0.5), isMobile() ? 180 : 260);
-        const extentPaddingY = Math.max(window.innerHeight * (isMobile() ? 0.32 : 0.4), isMobile() ? 140 : 220);
-        this.setZoomTranslateExtent([
-            [minX - extentPaddingX, minY - extentPaddingY],
-            [maxX + extentPaddingX, maxY + extentPaddingY]
-        ]);
         const scale = Math.min(window.innerWidth / viewWidth, window.innerHeight / viewHeight) * (isMobile() ? 1.01 : 0.99);
         const transform = d3.zoomIdentity
             .translate(
@@ -1489,6 +1513,10 @@ class EvolutionTree {
 
         document.getElementById('top-controls').style.display = 'none';
         document.getElementById('origin-btn').style.display = 'none';
+        const githubLink = document.getElementById('github-link');
+        if (githubLink) {
+            githubLink.style.display = 'none';
+        }
         document.getElementById('time-axis').style.opacity = 0;
 
         const overlay = document.getElementById('easter-egg-overlay');
@@ -1557,6 +1585,9 @@ class EvolutionTree {
             .duration(1000)
             .style("opacity", 0)
             .remove();
+        this.ghostRoot = null;
+        this.ghostGroup = null;
+        this.ghostNodes = null;
 
         this.getMainTreeSelection()
             .style("display", null)
@@ -1577,6 +1608,10 @@ class EvolutionTree {
         setTimeout(() => {
             document.getElementById('top-controls').style.display = 'flex';
             document.getElementById('origin-btn').style.display = 'block';
+            const githubLink = document.getElementById('github-link');
+            if (githubLink) {
+                githubLink.style.display = 'flex';
+            }
             document.getElementById('time-axis').style.opacity = 1;
             this.isEasterEggActive = false;
         }, 1500);
@@ -1827,12 +1862,13 @@ class AppManager {
                     : (data.status_label_en || data.status_label_cn || '');
                 els.tags.appendChild(statusTag);
             }
-            if (data.time_range) {
+            const localizedTimeRange = getLocalizedTimeRange(data);
+            if (localizedTimeRange) {
                 const rangeTag = document.createElement('span');
                 rangeTag.className = 'info-tag';
                 rangeTag.textContent = isZh
-                    ? `生存区间: ${data.time_range}`
-                    : `Time span: ${data.time_range}`;
+                    ? `生存区间: ${localizedTimeRange}`
+                    : `Time span: ${localizedTimeRange}`;
                 els.tags.appendChild(rangeTag);
             }
             if (data.origin_time_mya) {

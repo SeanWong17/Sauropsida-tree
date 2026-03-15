@@ -688,10 +688,44 @@ h1 {
     stroke-width: 2px;
 }
 
-#origin-btn {
+#github-link {
     position: fixed;
     top: 20px;
     left: 20px;
+    z-index: 300;
+    height: 36px;
+    padding: 0 11px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(93, 64, 55, 0.3);
+    border-radius: 6px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    color: var(--line-color);
+    transition: all 0.25s;
+    text-decoration: none;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    box-sizing: border-box;
+}
+
+#github-link:hover {
+    background: var(--accent-color);
+    color: #fff;
+    border-color: var(--accent-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(197, 160, 89, 0.3);
+}
+
+#github-link svg {
+    display: block;
+    width: 18px;
+    height: 18px;
+}
+
+#origin-btn {
+    position: fixed;
+    top: 20px;
+    left: 68px;
     z-index: 300;
     height: 36px;
     background: rgba(255, 255, 255, 0.95);
@@ -705,7 +739,9 @@ h1 {
     transition: all 0.25s;
     display: none;
     white-space: nowrap;
+    line-height: 34px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    box-sizing: border-box;
 }
 
 #origin-btn:hover {
@@ -831,6 +867,18 @@ h1 {
         font-size: 16px;
     }
 
+    #github-link {
+        top: 10px;
+        left: 10px;
+        height: 34px;
+        padding: 0 10px;
+    }
+
+    #github-link svg {
+        width: 18px;
+        height: 18px;
+    }
+
     .modal-card {
         width: 95%;
         max-height: 85vh;
@@ -846,14 +894,15 @@ h1 {
 
     #origin-btn {
         top: 10px;
-        left: 10px;
-        max-width: calc(100vw - 20px);
+        left: 58px;
+        max-width: calc(100vw - 68px);
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
         font-size: 11px;
         padding: 0 10px;
         height: 34px;
+        line-height: 32px;
     }
 
     #exit-egg-btn {
