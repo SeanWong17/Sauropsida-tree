@@ -986,10 +986,10 @@ class EvolutionTree {
 
     assignGhostCoordinates(root) {
         const baseSpacing = getConfig('tree.nodeSpacing');
-        const layoutStep = isMobile() ? Math.round(baseSpacing * 0.76) : baseSpacing;
-        const layoutHeight = Math.max(root.leaves().length * layoutStep, isMobile() ? 360 : 640);
+        const layoutStep = isMobile() ? Math.round(baseSpacing * 0.62) : Math.round(baseSpacing * 0.78);
+        const layoutHeight = Math.max(root.leaves().length * layoutStep, isMobile() ? 300 : 520);
         const ghostTreeWidth = this.getGhostTreeWidth();
-        const ghostTreeLayout = d3.tree().size([layoutHeight, ghostTreeWidth]);
+        const ghostTreeLayout = d3.cluster().size([layoutHeight, ghostTreeWidth]);
         const ghostMaxTime = Math.max(
             ...root.descendants().map(node => {
                 const times = [node.data.time, node.data.end_time]
@@ -1031,7 +1031,11 @@ class EvolutionTree {
 
             if (freeChildren.length > 1) {
                 const center = d3.mean(freeChildren.map(child => child.gy));
-                const step = isMobile() ? 28 : 36;
+                const step = node.depth === 0
+                    ? (isMobile() ? 18 : 24)
+                    : node.depth === 1
+                        ? (isMobile() ? 22 : 28)
+                        : (isMobile() ? 26 : 34);
                 const start = center - (step * (freeChildren.length - 1)) / 2;
                 freeChildren.forEach((child, index) => {
                     child.gy = start + index * step;
@@ -1116,7 +1120,11 @@ class EvolutionTree {
         }
 
         const originalCenter = d3.mean(children, child => child.gy);
-        const subtreeGap = isMobile() ? 10 : 12;
+        const subtreeGap = node.depth === 0
+            ? (isMobile() ? 4 : 6)
+            : node.depth === 1
+                ? (isMobile() ? 6 : 8)
+                : (isMobile() ? 10 : 12);
         const bounds = children.map(child => ({
             child,
             ...this.getGhostSubtreeBounds(child)
