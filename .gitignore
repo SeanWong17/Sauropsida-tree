@@ -1,0 +1,7 @@
+scripts/
+tools/
+images/
+result/
+__pycache__/
+*.pyc
+*:Zone.Identifier

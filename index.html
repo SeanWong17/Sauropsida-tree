@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="DeepTime Sauropsida - 一个交互式现生蜥形纲演化时间树项目，展示龟鳖、喙头蜥、鳄类、鸟类与有鳞类的系统关系。">
+    <script>
+        (function() {
+            if (!/^https?:$/.test(window.location.protocol)) return;
+            if (!window.location.hostname.endsWith('github.io')) return;
+
+            const pathParts = window.location.pathname.split('/').filter(Boolean);
+            if (pathParts.length === 0) return;
+
+            const base = document.createElement('base');
+            base.href = '/' + pathParts[0] + '/';
+            document.head.appendChild(base);
+        })();
+    </script>
+    <link rel="icon" href="assets/logo.png" type="image/png">
+    <title>现生蜥形纲 - Sauropsida Tree</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="src/css/style.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS3DRenderer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tweenjs/tween.js@18.6.4/dist/tween.umd.js"></script>
+
+    <!-- 项目文件：按依赖顺序加载 -->
+    <script src="data/data.js"></script>
+    <script src="src/js/easter_egg_data.js"></script>
+    <!-- images_data.js (~10.1MB) 由 main.js 异步懒加载，不阻塞首屏渲染 -->
+    <script src="src/js/i18n.js"></script>
+    <script src="src/js/config.js"></script>
+    <script src="src/js/utils.js"></script>
+</head>
+<body>
+
+    <div id="loading-screen">资源加载中...</div>
+    <div id="transition-overlay"></div>
+    <div id="paper-texture"></div>
+
+    <div id="ui-layer">
+        <h1>SAUROPSIDA</h1>
+        <p class="subtitle">现生蜥形纲演化时间树 · 交互式导览</p>
+        <button id="enter-btn">探索演化树</button>
+    </div>
+
+    <div id="container-particles"></div>
+    <div id="container-3d"></div>
+
+    <div id="container-viz"></div>
+    
+    <div id="top-controls">
+        <button id="lang-switch" class="tree-btn" title="切换语言 / Switch Language" aria-label="切换语言 / Switch Language">EN</button>
+        <button id="btn-collapse-all" class="tree-btn" title="逐级收起" aria-label="逐级收起">-</button>
+        <button id="btn-expand-all" class="tree-btn" title="逐级展开" aria-label="逐级展开">+</button>
+        <button id="btn-info" class="tree-btn info-icon" title="说明与日志" aria-label="说明与日志">i</button>
+        <div id="search-container">
+            <input type="text" id="search-input" placeholder="搜索目/科名（中文/拉丁名）...">
+            <div id="search-results"></div>
+        </div>
+    </div>
+    
+    <div id="time-axis">
+        <div id="time-indicator">0 MYA</div>
+        <svg id="axis-svg"></svg>
+    </div>
+
+    <!-- 资料详情模态框 -->
+    <div id="modal" class="modal-overlay">
+        <div class="modal-card">
+            <span class="modal-close">&times;</span>
+            <div class="modal-body">
+                <img id="modal-img" src="" alt="" class="specimen-img">
+                <div class="specimen-info">
+                    <h2 id="modal-cn" class="specimen-title"></h2>
+                    <span id="modal-en" class="specimen-latin"></span>
+                    <div id="modal-tags"></div>
+                    <p id="modal-desc" class="specimen-desc"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 关于/日志模态框 -->
+    <div id="info-modal" class="modal-overlay">
+        <div class="modal-card">
+            <span class="modal-close" id="info-close">&times;</span>
+            <div class="about-content">
+                <h2 data-i18n="aboutTitle">关于本项目</h2>
+                <p data-i18n="aboutIntro">这是一个交互式现生蜥形纲演化可视化项目，按“鸟类到目，其余到科”的粒度展示龟鳖、喙头蜥、鳄类、鸟类与有鳞类的系统关系。</p>
+                
+                <h3 data-i18n="dataTitle">数据与技术说明</h3>
+                <ul>
+                    <li><strong data-i18n="dataSource">数据基准</strong><span data-i18n="dataSourceDesc">：分类系统主要参考 Reptile Database 与 IOC World Bird List；层级上对节点过密的支系补入了总科、下目等中间层。</span></li>
+                    <li><strong data-i18n="birdBackbone">鸟类主干</strong><span data-i18n="birdBackboneDesc">：鸟类末级采用 IOC 当前目级框架；Neoaves 内部主干优先参照近年广泛使用的系统发育结果，避免沿用已被并回的旧目级拆分。</span></li>
+                    <li><strong data-i18n="timeScale">时间标尺</strong><span data-i18n="timeScaleDesc">：高阶节点优先参考文献常见的冠群分化时间；末级节点时间为便于可视化整理的近似冠群时间。</span></li>
+                    <li><strong data-i18n="imageGen">图像生成</strong><span data-i18n="imageGenDesc">：当前阶段优先完成树结构与数据整理，图像资源仍待后续按节点逐步补充。</span></li>
+                    <li><strong data-i18n="techStack">技术架构</strong><span data-i18n="techStackDesc">：本项目基于 D3.js (2D) 与 Three.js (3D) 混合开发。为了提升国内访问体验，所有图像资源均采用 <strong>CDN</strong> 链路进行加速分发。</span></li>
+                </ul>
+
+                <h3 data-i18n="sourcesTitle">参考来源</h3>
+                <ul>
+                    <li><a href="https://reptile-database.reptarium.cz/" target="_blank" rel="noopener noreferrer">Reptile Database</a></li>
+                    <li><a href="https://www.worldbirdnames.org/new/bow/orders/" target="_blank" rel="noopener noreferrer">IOC World Bird List - Orders (v15.1; updated 2025-02-20)</a></li>
+                    <li><a href="https://www.pnas.org/doi/10.1073/pnas.1509211112" target="_blank" rel="noopener noreferrer">Prum et al. 2015 - A comprehensive phylogeny of birds</a></li>
+                    <li><a href="https://www.cell.com/current-biology/fulltext/S0960-9822(13)00711-7" target="_blank" rel="noopener noreferrer">Jones et al. 2013 - The evolutionary history of sauropsids</a></li>
+                    <li><a href="https://academic.oup.com/sysbio/article/70/5/896/6046485" target="_blank" rel="noopener noreferrer">Thomson et al. 2021 - Turtles and the age of crown Testudines</a></li>
+                </ul>
+
+                <h3 data-i18n="guideTitle">操作指南</h3>
+                <ul>
+                    <li><strong data-i18n="guideDrag">拖拽画布</strong><span data-i18n="guideDragDesc">：自由移动演化树视图</span></li>
+                    <li><strong data-i18n="guideZoom">滚轮/双指</strong><span data-i18n="guideZoomDesc">：缩放查看演化细节</span></li>
+                    <li><strong data-i18n="guideNode">点击节点</strong><span data-i18n="guideNodeDesc">：展开或收起演化分支</span></li>
+                    <li><strong data-i18n="guideText">点击文字</strong><span data-i18n="guideTextDesc">：查看物种/科目的详细资料卡片</span></li>
+                </ul>
+
+                <h3 data-i18n="thanksTitle">致谢与联系</h3>
+                <p data-i18n="thanksGemini">当前版本的重点是把现生蜥形纲的树结构整理清楚，后续还会继续补时间来源、配图和节点细节。</p>
+                <p data-i18n="thanksNote">如果你发现分类层级、节点时间或节点说明仍有可优化之处，可以继续在这个兄弟项目上迭代。</p>
+                
+                <ul style="margin-top: 15px; border-top: 1px dashed #eee; padding-top: 15px;">
+                    <li><strong data-i18n="version">当前版本</strong>：v1.0 (Initial Release)</li>
+                    <li><strong data-i18n="feedback">反馈邮箱</strong>：<a href="mailto:shuowang1998@163.com" style="color: var(--accent-color); text-decoration: none;">shuowang1998@163.com</a></li>
+                </ul>
+                
+                <div class="about-footer">
+                    Designed & Developed by Sean Wong<br>
+                    Taxonomy: Reptile Database & IOC World Bird List
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <a id="github-link" href="https://github.com/SeanWong17/Sauropsida-tree" target="_blank" rel="noopener noreferrer" title="View on GitHub" aria-label="View source on GitHub">
+        <svg viewBox="0 0 16 16" width="24" height="24" fill="currentColor">
+            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+        </svg>
+    </a>
+    <button id="origin-btn">溯源：失落的蜥形时代</button>
+    <button id="exit-egg-btn">返回现生蜥形纲</button>
+
+    <div id="easter-egg-overlay">
+        <div class="ee-text-main">我们看到的现生蜥形纲，并不是盛世本身，只是那场中生代辐射最后幸存的枝条。</div>
+    </div>
+
+    <script src="src/js/main.js"></script>
+</body>
+</html>
