@@ -909,6 +909,7 @@ class EvolutionTree {
         if (!this.ghostData) return;
 
         const invalidTimes = [];
+        const invalidEndTimes = [];
         const visitGhost = (node, parent = null) => {
             if (parent && typeof node.time === 'number' && typeof parent.time === 'number' && node.time > parent.time) {
                 invalidTimes.push({
@@ -918,14 +919,24 @@ class EvolutionTree {
                     childTime: node.time
                 });
             }
+
+            if (typeof node.time === 'number' && typeof node.end_time === 'number' && node.end_time > node.time) {
+                invalidEndTimes.push({
+                    node: node.name,
+                    nodeTime: node.time,
+                    endTime: node.end_time
+                });
+            }
+
             (node.children || []).forEach(child => visitGhost(child, node));
         };
 
         visitGhost(this.ghostData);
 
-        if (invalidTimes.length) {
+        if (invalidTimes.length || invalidEndTimes.length) {
             console.warn('Easter egg data validation issues detected.', {
-                invalidTimes
+                invalidTimes,
+                invalidEndTimes
             });
         }
     }
@@ -933,7 +944,7 @@ class EvolutionTree {
     cleanGhostCnLabel(label) {
         if (!label) return '';
         return label
-            .replace(/\s*[\[(（【][^)\]）】]*?(灭绝主线|灭绝|幸存主线|幸存孑遗|现存恐龙)[^)\]）】]*?[\])）】]\s*/g, '')
+            .replace(/\s*[\[(（【][^)\]）】]*?(灭绝主线|灭绝|幸存主线|幸存孑遗|幸存末枝|现存恐龙)[^)\]）】]*?[\])）】]\s*/g, '')
             .replace(/\s+/g, ' ')
             .trim();
     }
@@ -954,17 +965,41 @@ class EvolutionTree {
         return ghostTimeScale(Math.max(0, normalizedTime));
     }
 
+    getGhostNodeDisplayTime(node) {
+        const startTime = Number.isFinite(+node.data.time) ? +node.data.time : 0;
+        const hasChildren = Boolean(node.children && node.children.length);
+
+        if (hasChildren) {
+            return startTime;
+        }
+
+        if (node.data.survivor) {
+            return 0;
+        }
+
+        if (node.data.dead && Number.isFinite(+node.data.end_time)) {
+            return Math.max(0, Math.min(startTime, +node.data.end_time));
+        }
+
+        return startTime;
+    }
+
     assignGhostCoordinates(root) {
         const layoutStep = isMobile() ? 42 : 54;
         const layoutHeight = Math.max(root.leaves().length * layoutStep, isMobile() ? 420 : 720);
         const ghostTreeWidth = this.getGhostTreeWidth();
         const ghostTreeLayout = d3.tree().size([layoutHeight, ghostTreeWidth]);
         const ghostMaxTime = Math.max(
-            ...root.descendants().map(node => Number.isFinite(+node.data.time) ? +node.data.time : 0)
+            ...root.descendants().map(node => {
+                const times = [node.data.time, node.data.end_time]
+                    .map(value => Number.isFinite(+value) ? +value : 0);
+                return Math.max(...times);
+            })
         );
         const ghostTimeScale = d3.scaleLinear()
             .domain([ghostMaxTime, 0])
             .range([0, ghostTreeWidth]);
+        this.ghostTimeScale = ghostTimeScale;
         ghostTreeLayout(root);
         const rootX = Number.isFinite(root.x) ? root.x : 0;
 
@@ -972,7 +1007,8 @@ class EvolutionTree {
             (node.children || []).forEach(assignPostOrder);
 
             node.data.isAlignedToLive = false;
-            node.gx = this.getGhostTimePosition(node.data.time || 0, ghostTimeScale);
+            node.data.display_time = this.getGhostNodeDisplayTime(node);
+            node.gx = this.getGhostTimePosition(node.data.display_time, ghostTimeScale);
 
             if (!node.children || node.children.length === 0) {
                 node.gy = (Number.isFinite(node.x) ? node.x : 0) - rootX;
@@ -1021,7 +1057,7 @@ class EvolutionTree {
         const freeLeaves = root.descendants()
             .filter(node => !node.data.isAlignedToLive && (!node.children || node.children.length === 0));
         const columnSnap = isMobile() ? 18 : 24;
-        const minGap = isMobile() ? 34 : 48;
+        const minGap = isMobile() ? 40 : 56;
         const columns = d3.group(freeLeaves, node => Math.round(node.gx / columnSnap));
 
         columns.forEach(nodes => {
@@ -1046,27 +1082,108 @@ class EvolutionTree {
         });
     }
 
+    buildRoundedOrthogonalPath(points, maxRadius = isMobile() ? 8 : 12) {
+        const normalizedPoints = [];
+        points.forEach(point => {
+            if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return;
+            const previous = normalizedPoints[normalizedPoints.length - 1];
+            if (previous && previous.x === point.x && previous.y === point.y) return;
+            normalizedPoints.push(point);
+        });
+
+        if (normalizedPoints.length < 2) {
+            const fallback = normalizedPoints[0] || { x: 0, y: 0 };
+            return `M ${fallback.x} ${fallback.y}`;
+        }
+
+        if (normalizedPoints.length === 2) {
+            const [start, end] = normalizedPoints;
+            return `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
+        }
+
+        let path = `M ${normalizedPoints[0].x} ${normalizedPoints[0].y}`;
+
+        for (let index = 1; index < normalizedPoints.length - 1; index++) {
+            const previous = normalizedPoints[index - 1];
+            const current = normalizedPoints[index];
+            const next = normalizedPoints[index + 1];
+            const previousLength = Math.hypot(current.x - previous.x, current.y - previous.y);
+            const nextLength = Math.hypot(next.x - current.x, next.y - current.y);
+
+            if (previousLength < 0.01 || nextLength < 0.01) {
+                continue;
+            }
+
+            const radius = Math.min(maxRadius, previousLength / 2, nextLength / 2);
+            const entry = {
+                x: current.x - ((current.x - previous.x) / previousLength) * radius,
+                y: current.y - ((current.y - previous.y) / previousLength) * radius
+            };
+            const exit = {
+                x: current.x + ((next.x - current.x) / nextLength) * radius,
+                y: current.y + ((next.y - current.y) / nextLength) * radius
+            };
+
+            path += ` L ${entry.x} ${entry.y}`;
+            path += ` Q ${current.x} ${current.y} ${exit.x} ${exit.y}`;
+        }
+
+        const lastPoint = normalizedPoints[normalizedPoints.length - 1];
+        path += ` L ${lastPoint.x} ${lastPoint.y}`;
+        return path;
+    }
+
     ghostCurve(source, target) {
-        if (source.gx === target.gx && source.gy === target.gy) {
-            return `M ${source.gx} ${source.gy} L ${target.gx} ${target.gy}`;
+        return this.buildRoundedOrthogonalPath([
+            { x: source.gx, y: source.gy },
+            { x: source.gx, y: target.gy },
+            { x: target.gx, y: target.gy }
+        ]);
+    }
+
+    buildGhostSegments(root) {
+        const segments = [];
+
+        root.descendants().forEach(node => {
+            const children = node.children || [];
+            if (!children.length) return;
+
+            const orderedChildren = [...children].sort((a, b) => a.gy - b.gy);
+
+            if (orderedChildren.length > 1) {
+                segments.push({
+                    kind: "trunk",
+                    node,
+                    hasSurvivorPath: Boolean(node.data.hasSurvivorPath),
+                    y1: orderedChildren[0].gy,
+                    y2: orderedChildren[orderedChildren.length - 1].gy
+                });
+            }
+
+            orderedChildren.forEach(child => {
+                segments.push({
+                    kind: "branch",
+                    source: node,
+                    target: child,
+                    siblingCount: orderedChildren.length,
+                    hasSurvivorPath: Boolean(child.data.hasSurvivorPath)
+                });
+            });
+        });
+
+        return segments;
+    }
+
+    getGhostSegmentPath(segment) {
+        if (segment.kind === "trunk") {
+            return `M ${segment.node.gx} ${segment.y1} L ${segment.node.gx} ${segment.y2}`;
         }
 
-        const radius = 12;
-        const vDist = target.gy - source.gy;
-
-        if (Math.abs(vDist) < radius * 2) {
-            return `M ${source.gx} ${source.gy} L ${source.gx} ${target.gy} L ${target.gx} ${target.gy}`;
+        if (segment.siblingCount > 1) {
+            return `M ${segment.source.gx} ${segment.target.gy} L ${segment.target.gx} ${segment.target.gy}`;
         }
 
-        const dir = vDist > 0 ? 1 : -1;
-        const curveEndX = Math.min(source.gx + radius, target.gx);
-
-        return `
-            M ${source.gx} ${source.gy}
-            L ${source.gx} ${target.gy - radius * dir}
-            Q ${source.gx} ${target.gy} ${curveEndX} ${target.gy}
-            L ${target.gx} ${target.gy}
-        `;
+        return this.ghostCurve(segment.source, segment.target);
     }
 
     refreshGhostLanguage() {
@@ -1118,8 +1235,13 @@ class EvolutionTree {
 
     refreshGhostGeometry(ghostGroup, gNodes) {
         gNodes.attr("transform", d => `translate(${d.gx},${d.gy})`);
-        ghostGroup.selectAll(".link.ghost")
-            .attr("d", d => this.ghostCurve(d.source, d.target));
+        ghostGroup.selectAll(".link.ghost.ghost-branch")
+            .attr("d", d => this.getGhostSegmentPath(d));
+        const presentX = this.ghostTimeScale
+            ? this.getGhostTimePosition(0, this.ghostTimeScale)
+            : this.getGhostTreeWidth();
+        ghostGroup.selectAll(".link.ghost.survivor-extension")
+            .attr("d", d => `M ${d.gx} ${d.gy} L ${presentX} ${d.gy}`);
     }
 
     collectGhostBoxes(gNodes) {
@@ -1132,12 +1254,28 @@ class EvolutionTree {
             const right = Math.max(d.gx + radius, d.gx + textBox.x + textBox.width);
             const top = Math.min(d.gy - radius, d.gy + textBox.y);
             const bottom = Math.max(d.gy + radius, d.gy + textBox.y + textBox.height);
+            let boxLeft = left;
+            let boxRight = right;
+            let boxTop = top;
+            let boxBottom = bottom;
+
+            const isLeaf = !d.children || d.children.length === 0;
+            if (isLeaf && d.parent) {
+                const terminalStartX = Math.min(d.gx, d.parent.gx);
+                const lineHalfHeight = isMobile() ? 5 : 6;
+
+                boxLeft = Math.min(boxLeft, terminalStartX);
+                boxRight = Math.max(boxRight, d.gx);
+                boxTop = Math.min(boxTop, d.gy - lineHalfHeight);
+                boxBottom = Math.max(boxBottom, d.gy + lineHalfHeight);
+            }
+
             boxes.push({
                 d,
-                left,
-                right,
-                top,
-                bottom,
+                left: boxLeft,
+                right: boxRight,
+                top: boxTop,
+                bottom: boxBottom,
                 movable: !d.data.isAlignedToLive
             });
         });
@@ -1170,7 +1308,8 @@ class EvolutionTree {
             this.recenterFreeGhostAncestors(ghostRoot);
             this.refreshGhostGeometry(ghostGroup, gNodes);
 
-            const boxes = this.collectGhostBoxes(gNodes);
+            const boxes = this.collectGhostBoxes(gNodes)
+                .filter(box => !box.d.children || box.d.children.length === 0);
             let moved = false;
 
             outer:
@@ -1222,31 +1361,53 @@ class EvolutionTree {
         this.markGhostSurvivorPaths(ghostRoot);
         this.assignGhostCoordinates(ghostRoot);
         const ghostGroup = this.g.insert("g", ":first-child")
-            .attr("class", "ghost-layer")
-            .style("pointer-events", "none");
+            .attr("class", "ghost-layer");
 
         const getGhostLinkClass = (d) => {
-            if (d.target.data.hasSurvivorPath) return "link ghost survivor-line";
+            if (d.hasSurvivorPath) return "link ghost survivor-line";
             return "link ghost";
         };
 
-        ghostGroup.selectAll(".link.ghost")
-            .data(ghostRoot.links())
+        const ghostSegments = this.buildGhostSegments(ghostRoot);
+
+        ghostGroup.selectAll(".link.ghost.ghost-branch")
+            .data(ghostSegments)
             .enter()
             .append("path")
-            .attr("class", d => getGhostLinkClass(d))
-            .attr("d", d => this.ghostCurve(d.source, d.target))
+            .attr("class", d => `${getGhostLinkClass(d)} ghost-branch`)
+            .attr("d", d => this.getGhostSegmentPath(d))
             .style("opacity", 0)
             .transition()
             .duration(2000)
-            .style("opacity", d => d.target.data.hasSurvivorPath ? 0.8 : 0.3);
+            .style("opacity", d => d.hasSurvivorPath ? 0.8 : 0.3);
+
+        const survivorExtensions = ghostRoot.descendants()
+            .filter(d => d.data.survivor && d.children && !d.children.some(child => child.data.hasSurvivorPath));
+        const presentX = this.ghostTimeScale
+            ? this.getGhostTimePosition(0, this.ghostTimeScale)
+            : this.getGhostTreeWidth();
+
+        ghostGroup.selectAll(".link.ghost.survivor-extension")
+            .data(survivorExtensions)
+            .enter()
+            .append("path")
+            .attr("class", "link ghost survivor-line survivor-extension")
+            .attr("d", d => `M ${d.gx} ${d.gy} L ${presentX} ${d.gy}`)
+            .style("opacity", 0)
+            .transition()
+            .duration(2000)
+            .style("opacity", 0.8);
 
         const gNodes = ghostGroup.selectAll(".node.ghost")
             .data(ghostRoot.descendants())
             .enter()
             .append("g")
             .attr("class", "node ghost")
-            .attr("transform", d => `translate(${d.gx},${d.gy})`);
+            .attr("transform", d => `translate(${d.gx},${d.gy})`)
+            .on("click", (e, d) => {
+                e.stopPropagation();
+                if (this.onNodeClick) this.onNodeClick(d.data);
+            });
 
         gNodes.append("circle")
             .attr("r", 4)

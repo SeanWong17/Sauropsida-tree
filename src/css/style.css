@@ -652,22 +652,32 @@ h1 {
     user-select: none;
 }
 
+.node.ghost {
+    pointer-events: auto;
+    cursor: pointer;
+}
+
 .node.ghost circle {
     fill: #333;
     stroke: #555;
     opacity: 0.6;
+    pointer-events: auto;
 }
 
 .node.ghost text {
     fill: #666;
     font-style: italic;
     font-size: 10px;
+    pointer-events: auto;
 }
 
 .link.ghost {
+    fill: none;
     stroke: #444;
     stroke-width: 1px;
     stroke-dasharray: 4, 4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
     opacity: 0.4;
 }
 
