@@ -646,6 +646,12 @@ h1 {
 }
 
 /* 彩蛋相关样式 */
+.ghost-layer,
+.ghost-layer * {
+    pointer-events: none;
+    user-select: none;
+}
+
 .node.ghost circle {
     fill: #333;
     stroke: #555;

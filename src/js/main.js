@@ -552,7 +552,9 @@ class EvolutionTree {
                 const centerY = (viewHeight / 2 - e.transform.y) / e.transform.k;
                 this.g.selectAll(".epoch-label").attr("y", centerY);
 
-                this.currentTransform = e.transform;
+                if (!this.isEasterEggActive) {
+                    this.currentTransform = e.transform;
+                }
 
                 if (this.axisGroup && this.axis) {
                     const newScale = e.transform.rescaleX(this.timeScale);
@@ -903,35 +905,11 @@ class EvolutionTree {
         return node.data.hasSurvivorPath;
     }
 
-    buildLiveNodeLookup() {
-        const lookup = new Map();
-        const visitNode = (node) => {
-            if (!node) return;
-            const keys = [node.data.en_name, node.data.family_en].filter(Boolean);
-            keys.forEach(key => {
-                if (!lookup.has(key) && typeof node.x === 'number' && typeof node.y === 'number') {
-                    lookup.set(key, { x: node.x, y: node.y, depth: node.depth });
-                }
-            });
-            const children = [...(node.children || []), ...(node._children || [])];
-            children.forEach(visitNode);
-        };
-        visitNode(this.root);
-        return lookup;
-    }
-
     validateGhostData() {
         if (!this.ghostData) return;
 
-        const liveKeys = new Set();
-        this.buildLiveNodeLookup().forEach((_, key) => liveKeys.add(key));
-
-        const unmatchedSurvivors = [];
         const invalidTimes = [];
         const visitGhost = (node, parent = null) => {
-            if (node.survivor && !liveKeys.has(node.name)) {
-                unmatchedSurvivors.push(node.name);
-            }
             if (parent && typeof node.time === 'number' && typeof parent.time === 'number' && node.time > parent.time) {
                 invalidTimes.push({
                     parent: parent.name,
@@ -945,9 +923,8 @@ class EvolutionTree {
 
         visitGhost(this.ghostData);
 
-        if (unmatchedSurvivors.length || invalidTimes.length) {
+        if (invalidTimes.length) {
             console.warn('Easter egg data validation issues detected.', {
-                unmatchedSurvivors,
                 invalidTimes
             });
         }
@@ -968,46 +945,44 @@ class EvolutionTree {
         return data.name;
     }
 
-    getGhostTimePosition(time, ghostMaxTime) {
-        const normalizedTime = Number.isFinite(+time) ? +time : 0;
-        if (normalizedTime <= this.axisMax || ghostMaxTime <= this.axisMax) {
-            return this.timeScale(Math.min(normalizedTime, this.axisMax));
-        }
+    getGhostTreeWidth() {
+        return isMobile() ? getConfig('tree.width.mobile') : getConfig('tree.width.desktop');
+    }
 
-        const treeWidth = isMobile() ? getConfig('tree.width.mobile') : getConfig('tree.width.desktop');
-        const pxPerMya = treeWidth / this.axisMax;
-        return -((Math.min(normalizedTime, ghostMaxTime) - this.axisMax) * pxPerMya);
+    getGhostTimePosition(time, ghostTimeScale) {
+        const normalizedTime = Number.isFinite(+time) ? +time : 0;
+        return ghostTimeScale(Math.max(0, normalizedTime));
     }
 
     assignGhostCoordinates(root) {
-        const liveLookup = this.buildLiveNodeLookup();
-        const fallbackOffset = this.root.x - root.x;
-        const ghostTreeLayout = d3.tree().size([1100, 900]);
+        const layoutStep = isMobile() ? 42 : 54;
+        const layoutHeight = Math.max(root.leaves().length * layoutStep, isMobile() ? 420 : 720);
+        const ghostTreeWidth = this.getGhostTreeWidth();
+        const ghostTreeLayout = d3.tree().size([layoutHeight, ghostTreeWidth]);
         const ghostMaxTime = Math.max(
-            this.axisMax,
             ...root.descendants().map(node => Number.isFinite(+node.data.time) ? +node.data.time : 0)
         );
+        const ghostTimeScale = d3.scaleLinear()
+            .domain([ghostMaxTime, 0])
+            .range([0, ghostTreeWidth]);
         ghostTreeLayout(root);
+        const rootX = Number.isFinite(root.x) ? root.x : 0;
 
         const assignPostOrder = (node) => {
             (node.children || []).forEach(assignPostOrder);
 
-            const liveAnchor = liveLookup.get(node.data.name);
-            node.gx = this.getGhostTimePosition(node.data.time || 0, ghostMaxTime);
-
-            if (liveAnchor) {
-                node.gx = liveAnchor.y;
-                node.gy = liveAnchor.x;
-                node.data.isAlignedToLive = true;
-                return;
-            }
+            node.data.isAlignedToLive = false;
+            node.gx = this.getGhostTimePosition(node.data.time || 0, ghostTimeScale);
 
             if (!node.children || node.children.length === 0) {
-                node.gy = node.x + fallbackOffset;
+                node.gy = (Number.isFinite(node.x) ? node.x : 0) - rootX;
                 return;
             }
 
-            node.gy = d3.mean(node.children.map(child => child.gy));
+            const childYs = node.children
+                .map(child => child.gy)
+                .filter(value => Number.isFinite(value));
+            node.gy = childYs.length ? d3.mean(childYs) : ((Number.isFinite(node.x) ? node.x : 0) - rootX);
         };
 
         const separateSiblings = (node) => {
@@ -1029,12 +1004,46 @@ class EvolutionTree {
             node.children.forEach(separateSiblings);
 
             if (!node.data.isAlignedToLive) {
-                node.gy = d3.mean(node.children.map(child => child.gy));
+                const childYs = node.children
+                    .map(child => child.gy)
+                    .filter(value => Number.isFinite(value));
+                node.gy = childYs.length ? d3.mean(childYs) : ((Number.isFinite(node.x) ? node.x : 0) - rootX);
             }
         };
 
         assignPostOrder(root);
         separateSiblings(root);
+        this.spreadFreeGhostLeaves(root);
+        this.recenterFreeGhostAncestors(root);
+    }
+
+    spreadFreeGhostLeaves(root) {
+        const freeLeaves = root.descendants()
+            .filter(node => !node.data.isAlignedToLive && (!node.children || node.children.length === 0));
+        const columnSnap = isMobile() ? 18 : 24;
+        const minGap = isMobile() ? 34 : 48;
+        const columns = d3.group(freeLeaves, node => Math.round(node.gx / columnSnap));
+
+        columns.forEach(nodes => {
+            if (nodes.length < 2) return;
+
+            nodes.sort((a, b) => a.gy - b.gy);
+            const originalCenter = d3.mean(nodes, node => node.gy);
+
+            for (let i = 1; i < nodes.length; i++) {
+                const previous = nodes[i - 1];
+                const current = nodes[i];
+                if (current.gy - previous.gy < minGap) {
+                    current.gy = previous.gy + minGap;
+                }
+            }
+
+            const shiftedCenter = d3.mean(nodes, node => node.gy);
+            const recenterOffset = originalCenter - shiftedCenter;
+            nodes.forEach(node => {
+                node.gy += recenterOffset;
+            });
+        });
     }
 
     ghostCurve(source, target) {
@@ -1066,6 +1075,10 @@ class EvolutionTree {
             .text(d => this.getGhostDisplayName(d.data));
     }
 
+    getMainTreeSelection() {
+        return this.g.selectAll('.bg-group, .text-group, .node:not(.ghost), .link:not(.ghost)');
+    }
+
     measureGhostBounds(nodeSelection, ghostRoot) {
         let minX = Infinity;
         let maxX = -Infinity;
@@ -1094,7 +1107,12 @@ class EvolutionTree {
         (node.children || []).forEach(child => this.recenterFreeGhostAncestors(child));
 
         if (!node.data.isAlignedToLive && node.children && node.children.length > 0) {
-            node.gy = d3.mean(node.children.map(child => child.gy));
+            const childYs = node.children
+                .map(child => child.gy)
+                .filter(value => Number.isFinite(value));
+            if (childYs.length) {
+                node.gy = d3.mean(childYs);
+            }
         }
     }
 
@@ -1107,83 +1125,85 @@ class EvolutionTree {
     collectGhostBoxes(gNodes) {
         const boxes = [];
         gNodes.each(function(d) {
-            const box = this.getBBox();
+            const textNode = this.querySelector('text');
+            const textBox = textNode ? textNode.getBBox() : { x: 0, y: 0, width: 0, height: 0 };
+            const radius = 4;
+            const left = Math.min(d.gx - radius, d.gx + textBox.x);
+            const right = Math.max(d.gx + radius, d.gx + textBox.x + textBox.width);
+            const top = Math.min(d.gy - radius, d.gy + textBox.y);
+            const bottom = Math.max(d.gy + radius, d.gy + textBox.y + textBox.height);
             boxes.push({
                 d,
-                x: box.x,
-                y: box.y,
-                width: box.width,
-                height: box.height,
+                left,
+                right,
+                top,
+                bottom,
                 movable: !d.data.isAlignedToLive
             });
         });
-        return boxes.sort((a, b) => (a.y - b.y) || (a.x - b.x));
+        return boxes.sort((a, b) => (a.top - b.top) || (a.left - b.left));
     }
 
     boxesOverlap(a, b) {
         const paddingX = isMobile() ? 18 : 24;
         const paddingY = isMobile() ? 8 : 12;
-        const aRight = a.x + a.width + paddingX;
-        const bRight = b.x + b.width + paddingX;
-        const aBottom = a.y + a.height + paddingY;
-        const bBottom = b.y + b.height + paddingY;
+        const aLeft = a.left - paddingX / 2;
+        const aRight = a.right + paddingX / 2;
+        const bLeft = b.left - paddingX / 2;
+        const bRight = b.right + paddingX / 2;
+        const aTop = a.top - paddingY / 2;
+        const aBottom = a.bottom + paddingY / 2;
+        const bTop = b.top - paddingY / 2;
+        const bBottom = b.bottom + paddingY / 2;
 
-        const xOverlap = a.x < bRight && b.x < aRight;
-        const yOverlap = a.y < bBottom && b.y < aBottom;
+        const xOverlap = aLeft < bRight && bLeft < aRight;
+        const yOverlap = aTop < bBottom && bTop < aBottom;
 
         return xOverlap && yOverlap;
     }
 
     resolveGhostCollisions(ghostGroup, gNodes, ghostRoot) {
-        const maxPasses = 8;
+        const maxPasses = 48;
         const minGap = isMobile() ? 12 : 16;
 
         for (let pass = 0; pass < maxPasses; pass++) {
             this.recenterFreeGhostAncestors(ghostRoot);
             this.refreshGhostGeometry(ghostGroup, gNodes);
 
+            const boxes = this.collectGhostBoxes(gNodes);
             let moved = false;
-            let boxes = this.collectGhostBoxes(gNodes);
 
-            for (let i = 1; i < boxes.length; i++) {
-                const previous = boxes[i - 1];
-                const current = boxes[i];
-                if (!this.boxesOverlap(previous, current)) continue;
+            outer:
+            for (let i = 0; i < boxes.length; i++) {
+                const upper = boxes[i];
 
-                const delta = (previous.y + previous.height + minGap) - current.y;
+                for (let j = i + 1; j < boxes.length; j++) {
+                    const lower = boxes[j];
+                    if (lower.top > upper.bottom + minGap) break;
+                    if (!this.boxesOverlap(upper, lower)) continue;
 
-                if (current.movable) {
-                    current.d.gy += delta;
+                    const delta = upper.bottom + minGap - lower.top;
+                    if (delta <= 0) continue;
+
+                    if (upper.movable && lower.movable) {
+                        upper.d.gy -= delta / 2;
+                        lower.d.gy += delta / 2;
+                    } else if (lower.movable) {
+                        lower.d.gy += delta;
+                    } else if (upper.movable) {
+                        upper.d.gy -= delta;
+                    } else {
+                        continue;
+                    }
+
                     moved = true;
-                } else if (previous.movable) {
-                    previous.d.gy -= delta;
-                    moved = true;
+                    break outer;
                 }
             }
 
-            this.recenterFreeGhostAncestors(ghostRoot);
-            this.refreshGhostGeometry(ghostGroup, gNodes);
-            boxes = this.collectGhostBoxes(gNodes).reverse();
-
-            for (let i = 1; i < boxes.length; i++) {
-                const previous = boxes[i - 1];
-                const current = boxes[i];
-                if (!this.boxesOverlap(previous, current)) continue;
-
-                const previousTop = previous.y;
-                const currentBottom = current.y + current.height;
-                const delta = currentBottom + minGap - previousTop;
-
-                if (current.movable) {
-                    current.d.gy -= delta;
-                    moved = true;
-                } else if (previous.movable) {
-                    previous.d.gy += delta;
-                    moved = true;
-                }
+            if (!moved) {
+                break;
             }
-
-            if (!moved) break;
         }
 
         this.recenterFreeGhostAncestors(ghostRoot);
@@ -1192,6 +1212,9 @@ class EvolutionTree {
 
     triggerEasterEgg() {
         if (this.isEasterEggActive || !this.ghostData) return;
+        this.svg.interrupt();
+        this.g.interrupt();
+        this.g.selectAll("*").interrupt();
         this.isEasterEggActive = true;
         this.savedTransform = this.currentTransform;
 
@@ -1199,7 +1222,8 @@ class EvolutionTree {
         this.markGhostSurvivorPaths(ghostRoot);
         this.assignGhostCoordinates(ghostRoot);
         const ghostGroup = this.g.insert("g", ":first-child")
-            .attr("class", "ghost-layer");
+            .attr("class", "ghost-layer")
+            .style("pointer-events", "none");
 
         const getGhostLinkClass = (d) => {
             if (d.target.data.hasSurvivorPath) return "link ghost survivor-line";
@@ -1250,9 +1274,11 @@ class EvolutionTree {
         const maxY = bounds.maxY + 100;
         const viewWidth = Math.max(1, maxX - minX);
         const viewHeight = Math.max(1, maxY - minY);
+        const extentPaddingX = Math.max(window.innerWidth * 1.2, 900);
+        const extentPaddingY = Math.max(window.innerHeight, 500);
         this.setZoomTranslateExtent([
-            [minX - 360, minY - 260],
-            [maxX + 360, maxY + 260]
+            [minX - extentPaddingX, minY - extentPaddingY],
+            [maxX + extentPaddingX, maxY + extentPaddingY]
         ]);
         const scale = Math.min(window.innerWidth / viewWidth, window.innerHeight / viewHeight) * (isMobile() ? 0.92 : 0.88);
         const transform = d3.zoomIdentity
@@ -1267,22 +1293,13 @@ class EvolutionTree {
             .ease(d3.easeCubicInOut)
             .call(this.zoom.transform, transform);
 
-        this.g.selectAll(".node:not(.ghost)")
+        this.getMainTreeSelection()
             .transition()
             .duration(2000)
-            .style("opacity", d => d.depth === 0 ? 0 : 0.1);
-        this.g.selectAll(".node:not(.ghost), .link:not(.ghost)")
-            .style("pointer-events", "none");
-
-        this.g.selectAll(".link:not(.ghost)")
-            .transition()
-            .duration(2000)
-            .style("opacity", 0.05);
-
-        this.g.selectAll(".epoch-band, .epoch-label")
-            .transition()
-            .duration(2000)
-            .style("opacity", 0.05);
+            .style("opacity", 0)
+            .on("end", function() {
+                d3.select(this).style("display", "none");
+            });
 
         document.getElementById('top-controls').style.display = 'none';
         document.getElementById('origin-btn').style.display = 'none';
@@ -1322,6 +1339,9 @@ class EvolutionTree {
 
     exitEasterEgg() {
         if (!this.isEasterEggActive) return;
+        this.svg.interrupt();
+        this.g.interrupt();
+        this.g.selectAll("*").interrupt();
 
         const exitBtn = document.getElementById('exit-egg-btn');
         const overlay = document.getElementById('easter-egg-overlay');
@@ -1352,19 +1372,9 @@ class EvolutionTree {
             .style("opacity", 0)
             .remove();
 
-        this.g.selectAll(".node:not(.ghost)")
-            .transition()
-            .duration(1000)
-            .style("opacity", 1);
-        this.g.selectAll(".node:not(.ghost), .link:not(.ghost)")
-            .style("pointer-events", null);
-
-        this.g.selectAll(".link:not(.ghost)")
-            .transition()
-            .duration(1000)
-            .style("opacity", 1);
-
-        this.g.selectAll(".epoch-band, .epoch-label")
+        this.getMainTreeSelection()
+            .style("display", null)
+            .style("opacity", 0)
             .transition()
             .duration(1000)
             .style("opacity", 1);
@@ -1375,6 +1385,7 @@ class EvolutionTree {
                 .duration(1500)
                 .ease(d3.easeCubicOut)
                 .call(this.zoom.transform, this.savedTransform);
+            this.currentTransform = this.savedTransform;
         }
 
         setTimeout(() => {
