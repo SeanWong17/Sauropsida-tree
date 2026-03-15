@@ -985,8 +985,9 @@ class EvolutionTree {
     }
 
     assignGhostCoordinates(root) {
-        const layoutStep = isMobile() ? 42 : 54;
-        const layoutHeight = Math.max(root.leaves().length * layoutStep, isMobile() ? 420 : 720);
+        const baseSpacing = getConfig('tree.nodeSpacing');
+        const layoutStep = isMobile() ? Math.round(baseSpacing * 0.76) : baseSpacing;
+        const layoutHeight = Math.max(root.leaves().length * layoutStep, isMobile() ? 360 : 640);
         const ghostTreeWidth = this.getGhostTreeWidth();
         const ghostTreeLayout = d3.tree().size([layoutHeight, ghostTreeWidth]);
         const ghostMaxTime = Math.max(
@@ -1030,7 +1031,7 @@ class EvolutionTree {
 
             if (freeChildren.length > 1) {
                 const center = d3.mean(freeChildren.map(child => child.gy));
-                const step = isMobile() ? 34 : 48;
+                const step = isMobile() ? 28 : 36;
                 const start = center - (step * (freeChildren.length - 1)) / 2;
                 freeChildren.forEach((child, index) => {
                     child.gy = start + index * step;
@@ -1058,7 +1059,7 @@ class EvolutionTree {
         const freeLeaves = root.descendants()
             .filter(node => !node.data.isAlignedToLive && (!node.children || node.children.length === 0));
         const columnSnap = isMobile() ? 18 : 24;
-        const minGap = isMobile() ? 40 : 56;
+        const minGap = isMobile() ? 26 : 34;
         const columns = d3.group(freeLeaves, node => Math.round(node.gx / columnSnap));
 
         columns.forEach(nodes => {
@@ -1115,7 +1116,7 @@ class EvolutionTree {
         }
 
         const originalCenter = d3.mean(children, child => child.gy);
-        const subtreeGap = isMobile() ? 26 : 34;
+        const subtreeGap = isMobile() ? 10 : 12;
         const bounds = children.map(child => ({
             child,
             ...this.getGhostSubtreeBounds(child)
@@ -1319,7 +1320,7 @@ class EvolutionTree {
 
     resolveGhostCollisions(ghostGroup, gNodes, ghostRoot) {
         const maxPasses = 48;
-        const minGap = isMobile() ? 12 : 16;
+        const minGap = isMobile() ? 8 : 10;
 
         for (let pass = 0; pass < maxPasses; pass++) {
             this.recenterFreeGhostAncestors(ghostRoot);
@@ -1445,19 +1446,19 @@ class EvolutionTree {
         this.resolveGhostCollisions(ghostGroup, gNodes, ghostRoot);
 
         const bounds = this.measureGhostBounds(gNodes, ghostRoot);
-        const minX = bounds.minX - 80;
-        const maxX = bounds.maxX + 120;
-        const minY = bounds.minY - 80;
-        const maxY = bounds.maxY + 100;
+        const minX = bounds.minX - (isMobile() ? 24 : 32);
+        const maxX = bounds.maxX + (isMobile() ? 36 : 48);
+        const minY = bounds.minY - (isMobile() ? 28 : 36);
+        const maxY = bounds.maxY + (isMobile() ? 36 : 44);
         const viewWidth = Math.max(1, maxX - minX);
         const viewHeight = Math.max(1, maxY - minY);
-        const extentPaddingX = Math.max(window.innerWidth * 1.2, 900);
-        const extentPaddingY = Math.max(window.innerHeight, 500);
+        const extentPaddingX = Math.max(window.innerWidth * (isMobile() ? 0.4 : 0.5), isMobile() ? 180 : 260);
+        const extentPaddingY = Math.max(window.innerHeight * (isMobile() ? 0.32 : 0.4), isMobile() ? 140 : 220);
         this.setZoomTranslateExtent([
             [minX - extentPaddingX, minY - extentPaddingY],
             [maxX + extentPaddingX, maxY + extentPaddingY]
         ]);
-        const scale = Math.min(window.innerWidth / viewWidth, window.innerHeight / viewHeight) * (isMobile() ? 0.92 : 0.88);
+        const scale = Math.min(window.innerWidth / viewWidth, window.innerHeight / viewHeight) * (isMobile() ? 1.01 : 0.99);
         const transform = d3.zoomIdentity
             .translate(
                 window.innerWidth / 2 - ((minX + maxX) / 2) * scale,
