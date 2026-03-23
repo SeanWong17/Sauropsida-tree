@@ -54,6 +54,16 @@
 - **资源懒加载**：`images_data.js` 以异步方式加载，避免阻塞首屏。
 - **纯静态部署友好**：无需后端，即可直接通过本地文件或静态托管运行。
 
+## 📸 预览 (Screenshots)
+
+| 3D 螺旋画廊 | 演化树概览 |
+|:---:|:---:|
+| <img src="examples/gallery.png" alt="Gallery View" width="100%"> | <img src="examples/tree.png" alt="Tree View" width="100%"> |
+
+| 资料卡片 | 溯源彩蛋 |
+|:---:|:---:|
+| <img src="examples/card.png" alt="Detail Card" width="100%"> | <img src="examples/egg.png" alt="Easter Egg View" width="100%"> |
+
 ## 🛠️ 技术栈 (Tech Stack)
 
 本项目采用 **Vanilla JavaScript (ES6+)** 开发，无构建步骤，适合直接预览与静态部署。

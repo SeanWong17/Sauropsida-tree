@@ -54,6 +54,16 @@ The current release uses a display policy of "**orders for birds, families for t
 - **Lazy-loaded image data**: `images_data.js` is loaded asynchronously to keep first render lighter.
 - **Static hosting friendly**: No backend is required; the project works as a static site.
 
+## 📸 Screenshots
+
+| 3D Helix Gallery | Tree Overview |
+|:---:|:---:|
+| <img src="examples/gallery.png" alt="Gallery View" width="100%"> | <img src="examples/tree.png" alt="Tree View" width="100%"> |
+
+| Specimen Card | Origin Easter Egg (Ghost View) |
+|:---:|:---:|
+| <img src="examples/card.png" alt="Detail Card" width="100%"> | <img src="examples/egg.png" alt="Easter Egg View" width="100%"> |
+
 ## 🛠️ Tech Stack
 
 The project is built with **Vanilla JavaScript (ES6+)** and does not require a build step.
