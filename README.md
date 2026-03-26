@@ -29,6 +29,13 @@
 
 > **🌟 亮点：** 项目包含一个“溯源：失落的蜥形时代”彩蛋视图，会把镜头从现生冠群拉回到蜥形纲更深的中生代辐射历史。
 
+## 🧭 相关推荐 (Related Project)
+
+如果你也想看看羊膜动物另一条幸存主线，可以继续浏览姊妹项目 **DeepTime Mammalia**：它聚焦合弓纲到现代哺乳动物的演化历程，用同样的沉浸式方式呈现哺乳纲的深时展开。
+
+👉 GitHub：<https://github.com/SeanWong17/Mammalia-tree>  
+👉 Live Demo：<https://mammalia-tree.pages.dev/>
+
 ## ✨ 核心特性 (Features)
 
 ### 🌌 沉浸式 3D 序幕

@@ -29,6 +29,13 @@ The current release uses a display policy of "**orders for birds, families for t
 
 > **🌟 Highlight:** The project includes a hidden "Origin: The Lost Age of Sauropsids" ghost-tree mode that pulls the camera beyond the living crown groups into the deeper Mesozoic radiation of Sauropsida.
 
+## 🧭 Related Project
+
+If you want to explore the other surviving amniote branch as well, continue with the sister project **DeepTime Mammalia**. It follows the evolutionary path from synapsids to modern mammals and presents mammalian deep time through the same immersive visual approach.
+
+👉 GitHub: <https://github.com/SeanWong17/Mammalia-tree>  
+👉 Live Demo: <https://mammalia-tree.pages.dev/>
+
 ## ✨ Features
 
 ### 🌌 Immersive 3D Prologue
