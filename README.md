@@ -25,7 +25,7 @@
 
 **DeepTime Sauropsida** 是一个运行于现代浏览器端的交互式数据可视化项目，尝试把现生蜥形纲重新放回更长的演化时间轴中展示。项目以 3D 螺旋序幕、动态演化树和节点资料卡的组合方式，呈现鸟类、鳄类、龟鳖类、喙头类与有鳞类之间的系统关系。
 
-当前版本以“**鸟类到目，其余现生主线到科**”为主要展示粒度，共整理 **126 个末级节点** 与 **64 个内部分类节点**。在节点过密的支系中，额外补入下目、总科等中间层，以保持树形结构和可读性。
+当前版本以“**鸟类到目，其余现生主线到科**”为主要展示粒度，共整理 **126 个末级节点** 与 **61 个内部分类节点**。在节点过密的支系中，额外补入下目、总科等中间层，以保持树形结构和可读性。
 
 > **🌟 亮点：** 项目包含一个“溯源：失落的蜥形时代”彩蛋视图，会把镜头从现生冠群拉回到蜥形纲更深的中生代辐射历史。
 
@@ -58,8 +58,10 @@
 
 ### ⚡ 性能与体验
 - **响应式布局**：桌面端和移动端分别配置粒子密度、树宽和初始缩放参数。
-- **资源懒加载**：`images_data.js` 以异步方式加载，避免阻塞首屏。
-- **纯静态部署友好**：无需后端，即可直接通过本地文件或静态托管运行。
+- **图片按需加载**：126 张图片拆分为内容哈希 WebP 文件，由轻量 manifest 映射，避免下载和解析整包 Base64。
+- **完全自托管**：D3、Three.js、Tween.js 与字体均随项目提供，无需连接第三方 CDN。
+- **可靠启动**：依赖缺失会显示可重试错误；WebGL 不可用时仍可继续进入 2D 演化树。
+- **无障碍支持**：支持键盘导航、对话框焦点管理、页面缩放与减少动效偏好。
 
 ## 📸 预览 (Screenshots)
 
@@ -73,13 +75,13 @@
 
 ## 🛠️ 技术栈 (Tech Stack)
 
-本项目采用 **Vanilla JavaScript (ES6+)** 开发，无构建步骤，适合直接预览与静态部署。
+本项目采用 **Vanilla JavaScript (ES6+)** 开发，无运行时构建步骤，适合直接预览与静态部署；Node.js 工具仅用于验证、测试和更新 vendored 资源。
 
 * **Core**: HTML5, CSS3, JavaScript
 * **Visualization**: [D3.js](https://d3js.org/) (v7) - 负责演化树布局、缩放和节点交互。
 * **3D Engine**: [Three.js](https://threejs.org/) (r128) - 负责 3D 螺旋画廊、粒子背景与 CSS3D 场景。
 * **Animation**: [Tween.js](https://github.com/tweenjs/tween.js/) - 负责相机和界面过渡动画。
-* **Fonts**: Noto Serif SC & Playfair Display (via Google Fonts)
+* **Fonts**: 自托管 Noto Serif SC，系统衬线字体回退
 
 ## 📂 目录结构 (Structure)
 
@@ -87,24 +89,25 @@
 
 ```text
 Sauropsida-tree/
-├── assets/                  # Logo 等静态资源
-├── data/                    # 演化树数据与图像索引
-│   ├── data.js             # 主树数据
-│   ├── image_generation_status.json
-│   └── images_data.js      # 图片数据映射
-├── result/
-│   └── webp_q75/           # 预处理后的物种/类群图片资源
-├── scripts/                 # 数据整理与图片处理脚本
+├── assets/                  # Logo、内容哈希图片与自托管字体
+├── data/                    # 演化树数据与轻量图片 manifest
+├── scripts/                 # 资源更新、数据校验与静态服务器
 ├── src/
 │   ├── css/
-│   │   └── style.css       # 主样式文件
+│   │   ├── noto-serif-sc.css
+│   │   └── style.css
 │   └── js/
 │       ├── config.js       # 布局与性能配置
 │       ├── easter_egg_data.js  # 彩蛋树数据
+│       ├── gallery.js      # WebGL 背景与 CSS3D 画廊
 │       ├── i18n.js         # 国际化文本
-│       ├── main.js         # 应用主逻辑
+│       ├── tree.js         # D3 主树与溯源彩蛋
+│       ├── app.js          # 启动状态与界面控制
 │       └── utils.js        # 工具函数
+├── tests/                   # Node、Playwright 与 Axe 测试
+├── vendor/                  # 固定版本的浏览器依赖及许可
 ├── index.html               # 入口页面
+├── package.json             # 开发验证命令与锁定依赖
 ├── README.md                # 中文说明
 └── README_EN.md             # English Documentation
 ```
@@ -114,7 +117,7 @@ Sauropsida-tree/
 ### 方式一：直接打开
 1. Clone 或下载本仓库。
 2. 直接打开 `index.html`。
-3. 若浏览器策略较宽松，可直接体验主要功能。
+3. 所有运行时资源均已内置，可直接体验完整功能。
 
 ### 方式二：本地服务器
 如果你希望避免部分浏览器的本地文件限制，建议启动一个静态服务器：
@@ -129,13 +132,21 @@ npx http-server -p 8000
 
 然后访问 `http://localhost:8000`
 
+### 开发验证
+
+```bash
+npm ci
+npm run check
+npm run test:browser
+```
+
 ## 🔬 数据范围与说明 (Data Scope)
 
 * **分类基准**：主要参考 **Reptile Database** 与 **IOC World Bird List**。
 * **层级策略**：鸟类以目级为末端，其余现生蜥形纲主线以科级为末端；对过密分支补入总科、下目等中间层。
 * **时间信息**：高阶节点优先采用常见冠群分化时间，末级节点时间以便于可视化整理的近似冠群时间为主。
 * **彩蛋视图**：额外扩展了大量已灭绝旁支，用于展示蜥形纲在深时尺度上的辐射与收缩。
-* **图像资源**：当前重点仍是树结构、节点时间与说明文本；图像资源正在继续补齐与校正。
+* **图像资源**：126 个末级节点均包含代表物种配图；生成式图像仍需持续校正形态细节。
 
 ## 🔧 可调配置 (Customization)
 
@@ -167,7 +178,7 @@ tree: {
 
 ## 📄 开源协议 (License)
 
-本作品采用 [知识共享署名-非商业性使用-相同方式共享 4.0 国际许可协议 (CC BY-NC-SA 4.0)](http://creativecommons.org/licenses/by-nc-sa/4.0/) 进行许可。
+本作品采用 [知识共享署名-非商业性使用-相同方式共享 4.0 国际许可协议 (CC BY-NC-SA 4.0)](LICENSE) 进行许可。
 
 * ✅ 你可以自由分享和修改本项目。
 * ❌ 不可用于商业用途。

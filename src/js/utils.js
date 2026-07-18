@@ -8,59 +8,81 @@ const DataUtils = {
      * 清理时间数据
      */
     sanitizeTime(val) {
-        return (!val) ? 0 : +val;
+        if (val === null || val === undefined || val === '') return 0;
+        const time = Number(val);
+        if (!Number.isFinite(time) || time < 0) {
+            throw new TypeError(`Invalid divergence time: ${val}`);
+        }
+        return time;
     },
-    
+
     /**
      * 构建层级数据
      */
     buildHierarchy(data) {
-        const map = {};
-        
+        if (!data || (!data.clades && !data.families)) {
+            throw new TypeError('Sauropsid hierarchy data is missing');
+        }
+
+        const map = new Map();
+        const addNode = (key, node) => {
+            if (!key) throw new Error('Hierarchy node is missing a key');
+            if (map.has(key)) throw new Error(`Duplicate hierarchy key: ${key}`);
+            map.set(key, node);
+        };
+
         // 处理分支节点
         if (data.clades) {
             Object.keys(data.clades).forEach(key => {
                 const rawNode = data.clades[key];
-                map[key] = {
+                addNode(key, {
                     ...rawNode,
-                    en_name: key,
+                    taxon_key: key,
+                    scientific_name: key,
+                    en_name: rawNode.en_name || key,
                     divergence_time_mya: this.sanitizeTime(rawNode.divergence_time_mya),
                     children: []
-                };
+                });
             });
         }
-        
+
         // 处理末级节点
         if (data.families) {
             data.families.forEach(fam => {
-                map[fam.family_en] = {
+                addNode(fam.family_en, {
                     ...fam,
                     children: [],
                     cn_name: fam.family_cn,
                     en_name: fam.family_en,
+                    taxon_key: fam.family_en,
+                    scientific_name: fam.family_en,
                     divergence_time_mya: this.sanitizeTime(fam.divergence_time_mya)
-                };
+                });
             });
         }
-        
+
         // 建立父子关系
-        let root = null;
-        Object.values(map).forEach(node => {
+        const roots = [];
+        map.forEach(node => {
             const parentKey = node.parent || node.parent_clade;
-            if (parentKey && map[parentKey]) {
-                map[parentKey].children.push(node);
+            if (parentKey) {
+                const parent = map.get(parentKey);
+                if (!parent) {
+                    throw new Error(`Missing parent '${parentKey}' for '${node.taxon_key}'`);
+                }
+                parent.children.push(node);
             } else if (!parentKey) {
-                root = node;
+                roots.push(node);
             }
         });
-        
-        if (!root && Object.keys(map).length > 0) {
-            root = map[Object.keys(map)[0]];
+
+        if (roots.length !== 1) {
+            throw new Error(`Expected one hierarchy root, found ${roots.length}`);
         }
-        
-        return d3.hierarchy(root);
+
+        return d3.hierarchy(roots[0]);
     },
-    
+
     /**
      * 获取节点等级值
      */
@@ -70,14 +92,14 @@ const DataUtils = {
             "superorder": 40, "clade": 45, "order": 50, "suborder": 60, "infraorder": 70,
             "parvorder": 80, "superfamily": 85, "family": 90
         };
-        
+
         if (d.data.family_en) return 90;
-        
+
         if (d.data.rank) {
             const key = d.data.rank.toLowerCase();
             if (rankMap[key] !== undefined) return rankMap[key];
         }
-        
+
         if (d.depth === 0) return 0;
         return null;
     },
@@ -100,30 +122,32 @@ const DOMUtils = {
         const size = 128;
         canvas.width = size;
         canvas.height = size;
-        
+
         const ctx = canvas.getContext('2d');
         ctx.fillStyle = '#fff';
         ctx.fillRect(0, 0, size, size);
-        
+
         const imageData = ctx.getImageData(0, 0, size, size);
         const buffer = new Uint32Array(imageData.data.buffer);
-        
+
         for (let i = 0; i < buffer.length; i++) {
             const noise = Math.random() * 255;
             buffer[i] = 0xff000000 | (noise << 16) | (noise << 8) | noise;
         }
-        
+
         ctx.putImageData(imageData, 0, 0);
         return canvas.toDataURL('image/png');
     },
-    
+
     /**
      * 创建卡片元素（使用 DOM API 避免 XSS）
      */
-    createCardElement(item, imgBase64) {
-        const element = document.createElement('div');
+    createCardElement(item, imageUrl) {
+        const element = document.createElement('button');
+        element.type = 'button';
         element.className = item.isHero ? 'card-element hero' : 'card-element';
         element.__cardData = item;
+        element.setAttribute('aria-label', `${t('openDetails')}: ${getLocalizedText(item, 'name')}`);
 
         const content = document.createElement('div');
         content.className = 'card-content';
@@ -131,10 +155,10 @@ const DOMUtils = {
         const img = document.createElement('img');
         img.className = 'card-img';
         img.loading = 'lazy';
-        img.dataset.imageKey = item.en_name || '';
-        img.dataset.fallbackSrc = item.image_url || '';
-        if (imgBase64) {
-            img.src = imgBase64;
+        img.decoding = 'async';
+        img.alt = getLocalizedText(item, 'name');
+        if (imageUrl) {
+            img.src = imageUrl;
         }
         img.addEventListener('error', function() {
             this.style.display = 'none';
@@ -176,6 +200,9 @@ const DOMUtils = {
                 ? (rankLabel ? `${alternateName} · ${rankLabel}` : alternateName)
                 : (rankLabel || '');
         }
+        element.setAttribute('aria-label', `${t('openDetails')}: ${getLocalizedText(item, 'name')}`);
+        const image = element.querySelector('.card-img');
+        if (image) image.alt = getLocalizedText(item, 'name');
     }
 };
 
@@ -186,16 +213,22 @@ const PerformanceUtils = {
      */
     debounce(func, wait) {
         let timeout;
-        return function executedFunction(...args) {
+        function executedFunction(...args) {
+            const context = this;
             const later = () => {
-                clearTimeout(timeout);
-                func(...args);
+                timeout = null;
+                func.apply(context, args);
             };
             clearTimeout(timeout);
             timeout = setTimeout(later, wait);
+        }
+        executedFunction.cancel = () => {
+            clearTimeout(timeout);
+            timeout = null;
         };
+        return executedFunction;
     },
-    
+
     /**
      * 节流函数
      */
@@ -209,7 +242,7 @@ const PerformanceUtils = {
             }
         };
     },
-    
+
     /**
      * 计算动态卡片数量
      */

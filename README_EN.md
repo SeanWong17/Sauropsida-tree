@@ -25,7 +25,7 @@
 
 **DeepTime Sauropsida** is an interactive browser-based visualization project that reframes living sauropsids within a much longer evolutionary timescale. It combines a 3D helix prologue, a dynamic phylogenetic tree, and node detail cards to present the relationships among birds, crocodilians, turtles, tuataras, and squamates.
 
-The current release uses a display policy of "**orders for birds, families for the remaining extant sauropsid lines**", covering **126 terminal nodes** and **64 internal clade nodes**. For especially dense branches, additional intermediate ranks such as infraorders and superfamilies are inserted to preserve readability.
+The current release uses a display policy of "**orders for birds, families for the remaining extant sauropsid lines**", covering **126 terminal nodes** and **61 internal clade nodes**. For especially dense branches, additional intermediate ranks such as infraorders and superfamilies are inserted to preserve readability.
 
 > **🌟 Highlight:** The project includes a hidden "Origin: The Lost Age of Sauropsids" ghost-tree mode that pulls the camera beyond the living crown groups into the deeper Mesozoic radiation of Sauropsida.
 
@@ -58,8 +58,10 @@ If you want to explore the other surviving amniote branch as well, continue with
 
 ### ⚡ Performance and Usability
 - **Responsive layout**: Separate desktop/mobile parameters for particles, tree width, and initial zoom.
-- **Lazy-loaded image data**: `images_data.js` is loaded asynchronously to keep first render lighter.
-- **Static hosting friendly**: No backend is required; the project works as a static site.
+- **On-demand images**: 126 content-hashed WebP files are mapped by a lightweight manifest instead of one Base64 bundle.
+- **Fully self-hosted**: D3, Three.js, Tween.js, and fonts ship with the project; no third-party CDN is required.
+- **Reliable startup**: Missing dependencies produce a retryable error, while unavailable WebGL falls back to the 2D tree.
+- **Accessible interaction**: Keyboard navigation, dialog focus management, browser zoom, and reduced-motion preferences are supported.
 
 ## 📸 Screenshots
 
@@ -73,13 +75,13 @@ If you want to explore the other surviving amniote branch as well, continue with
 
 ## 🛠️ Tech Stack
 
-The project is built with **Vanilla JavaScript (ES6+)** and does not require a build step.
+The project is built with **Vanilla JavaScript (ES6+)** and does not require a runtime build step. Node.js tooling is used only for validation, tests, and vendored-resource updates.
 
 * **Core**: HTML5, CSS3, JavaScript
 * **Visualization**: [D3.js](https://d3js.org/) (v7) - tree layout, zooming, and node interaction
 * **3D Engine**: [Three.js](https://threejs.org/) (r128) - 3D helix gallery, particle background, and CSS3D scene
 * **Animation**: [Tween.js](https://github.com/tweenjs/tween.js/) - camera and UI transitions
-* **Fonts**: Noto Serif SC & Playfair Display (via Google Fonts)
+* **Fonts**: self-hosted Noto Serif SC with system serif fallbacks
 
 ## 📂 Structure
 
@@ -87,24 +89,25 @@ This repository is a static frontend project. Data, image mappings, and interact
 
 ```text
 Sauropsida-tree/
-├── assets/                  # Static assets such as the logo
-├── data/                    # Tree data and image mappings
-│   ├── data.js             # Main extant-tree dataset
-│   ├── image_generation_status.json
-│   └── images_data.js      # Image mapping data
-├── result/
-│   └── webp_q75/           # Preprocessed image assets
-├── scripts/                 # Data and image-processing scripts
+├── assets/                  # Logo, hashed images, and self-hosted fonts
+├── data/                    # Evolution data and lightweight image manifest
+├── scripts/                 # Resource updates, validation, and static server
 ├── src/
 │   ├── css/
-│   │   └── style.css       # Main stylesheet
+│   │   ├── noto-serif-sc.css
+│   │   └── style.css
 │   └── js/
 │       ├── config.js       # Layout and performance configuration
 │       ├── easter_egg_data.js  # Ghost-tree dataset
+│       ├── gallery.js      # WebGL background and CSS3D gallery
 │       ├── i18n.js         # Internationalization strings
-│       ├── main.js         # Application logic
+│       ├── tree.js         # D3 tree and deep-time view
+│       ├── app.js          # Startup state and UI controller
 │       └── utils.js        # Utility helpers
+├── tests/                   # Node, Playwright, and Axe tests
+├── vendor/                  # Pinned browser dependencies and licenses
 ├── index.html               # Entry page
+├── package.json             # Validation commands and locked dependencies
 ├── README.md                # Chinese documentation
 └── README_EN.md             # English documentation
 ```
@@ -114,7 +117,7 @@ Sauropsida-tree/
 ### Method 1: Open Directly
 1. Clone or download the repository.
 2. Open `index.html` directly.
-3. In permissive browser environments, the main experience should work immediately.
+3. All runtime resources are included, so the complete experience works immediately.
 
 ### Method 2: Use a Local Server
 If you want to avoid local-file restrictions in some browsers, run a simple static server:
@@ -129,13 +132,21 @@ npx http-server -p 8000
 
 Then visit `http://localhost:8000`
 
+### Development Checks
+
+```bash
+npm ci
+npm run check
+npm run test:browser
+```
+
 ## 🔬 Data Scope and Notes
 
 * **Taxonomic basis**: primarily **Reptile Database** and **IOC World Bird List**
 * **Hierarchy policy**: terminal nodes are orders for birds and families for the remaining extant sauropsid branches; extra intermediate ranks are inserted for dense clades
 * **Time data**: higher clades prioritize commonly cited crown divergence estimates, while terminal-node ages are approximate crown-age values adjusted for visualization
 * **Ghost-tree mode**: extends the dataset with many extinct side branches to show sauropsid expansion and contraction through deep time
-* **Image assets**: the current milestone still prioritizes topology, timings, and node descriptions; image coverage is continuing to improve
+* **Image assets**: all 126 terminal nodes include representative imagery; generative-image anatomy still requires ongoing review
 
 ## 🔧 Customization
 
@@ -167,7 +178,7 @@ tree: {
 
 ## 📄 License
 
-This work is licensed under the [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License (CC BY-NC-SA 4.0)](http://creativecommons.org/licenses/by-nc-sa/4.0/).
+This work is licensed under the [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License (CC BY-NC-SA 4.0)](LICENSE).
 
 * ✅ You may share and adapt this project.
 * ❌ Commercial use is not allowed.

@@ -10,19 +10,23 @@ const i18n = {
         subtitle: "现生蜥形纲演化时间树 · 交互式导览",
         enterBtn: "探索演化树",
         loading: "资源加载中...",
-        
+
         // 控制按钮
         btnCollapse: "逐级收起",
         btnExpand: "逐级展开",
         btnInfo: "说明与日志",
+        langSwitch: "切换为英文",
         searchPlaceholder: "搜索目/科名（中文/拉丁名）...",
+        searchLabel: "搜索演化树节点",
         noResults: "无匹配结果",
-        
+        treeLabel: "现生蜥形纲演化时间树",
+        openDetails: "查看详情",
+
         // 彩蛋
         originBtn: "溯源：失落的蜥形时代",
         exitEggBtn: "返回现生蜥形纲",
         easterEggText: "我们看到的现生蜥形纲，并不是盛世本身，只是那场中生代辐射最后幸存的枝条。",
-        
+
         // 模态框
         aboutTitle: "关于本项目",
         aboutIntro: "这是一个交互式现生蜥形纲演化可视化项目，按“鸟类到目，其余到科”的粒度展示龟鳖、喙头蜥、鳄类、鸟类与有鳞类的系统关系。",
@@ -35,9 +39,9 @@ const i18n = {
         timeScaleDesc: "：高阶节点优先参考文献常见的冠群分化时间；末级节点时间为便于可视化整理的近似冠群时间。",
         sourcesTitle: "参考来源",
         imageGen: "图像生成",
-        imageGenDesc: "：当前阶段优先完成树结构与数据整理，图像资源仍待后续按节点逐步补充。",
+        imageGenDesc: "：126 个末级类群均配有代表物种图像；生成式图像可能存在细节偏差，欢迎反馈校正。",
         techStack: "技术架构",
-        techStackDesc: "：本项目基于 D3.js (2D) 与 Three.js (3D) 混合开发。为了提升国内访问体验，所有图像资源均采用 CDN 链路进行加速分发。",
+        techStackDesc: "：本项目基于 D3.js (2D) 与 Three.js (3D) 混合开发。图像使用内容哈希命名的 WebP 文件按需加载。",
         guideTitle: "操作指南",
         guideDrag: "拖拽画布",
         guideDragDesc: "：自由移动演化树视图",
@@ -52,7 +56,9 @@ const i18n = {
         thanksNote: "如果你发现分类层级、节点时间或节点说明仍有可优化之处，可以继续在这个兄弟项目上迭代。",
         version: "当前版本",
         feedback: "反馈邮箱",
-        closeBtn: "×"
+        closeBtn: "关闭",
+        loadError: "应用初始化失败，请检查资源后重试。",
+        retry: "重新加载"
     },
     en: {
         // UI 文本
@@ -60,19 +66,23 @@ const i18n = {
         subtitle: "Living Sauropsid Evolution Tree · Interactive Guide",
         enterBtn: "Explore Evolution",
         loading: "Loading Resources...",
-        
+
         // 控制按钮
         btnCollapse: "Collapse Level",
         btnExpand: "Expand Level",
         btnInfo: "About & Changelog",
+        langSwitch: "Switch to Chinese",
         searchPlaceholder: "Search order/family (Chinese/Latin)...",
+        searchLabel: "Search evolution tree nodes",
         noResults: "No Results",
-        
+        treeLabel: "Living sauropsid evolution timeline tree",
+        openDetails: "Open details",
+
         // 彩蛋
         originBtn: "Trace the Lost Age of Sauropsids",
         exitEggBtn: "Return to Living Sauropsida",
         easterEggText: "The living sauropsids we see today are not the whole grandeur, but the surviving branches of a far larger Mesozoic radiation.",
-        
+
         // 模态框
         aboutTitle: "About This Project",
         aboutIntro: "This is an interactive visualization of living Sauropsida, organized at order level for birds and family level for the remaining extant sauropsid lineages.",
@@ -85,9 +95,9 @@ const i18n = {
         timeScaleDesc: ": Higher clades prioritize literature-based crown ages; terminal-node ages are approximate crown-age estimates for visualization.",
         sourcesTitle: "References",
         imageGen: "Image Generation",
-        imageGenDesc: ": This stage focuses on tree structure and data curation; image assets will be added later on a node-by-node basis.",
+        imageGenDesc: ": All 126 terminal groups include representative-species imagery. Generative images may contain fine-detail inaccuracies; corrections are welcome.",
         techStack: "Technical Architecture",
-        techStackDesc: ": This project is developed using a hybrid of D3.js (2D) and Three.js (3D). To improve access experience, all image resources are distributed via CDN.",
+        techStackDesc: ": This project combines D3.js (2D) and Three.js (3D). Images are content-hashed WebP files loaded on demand.",
         guideTitle: "User Guide",
         guideDrag: "Drag Canvas",
         guideDragDesc: ": Freely move the evolution tree view",
@@ -102,7 +112,9 @@ const i18n = {
         thanksNote: "If a rank placement, age estimate, or node description still looks weak, the sibling project can continue to be refined from here.",
         version: "Current Version",
         feedback: "Feedback Email",
-        closeBtn: "×"
+        closeBtn: "Close",
+        loadError: "The application could not start. Check its resources and try again.",
+        retry: "Reload"
     }
 };
 
@@ -145,11 +157,11 @@ function switchLanguage(lang) {
 function t(key) {
     const keys = key.split('.');
     let value = i18n[currentLanguage];
-    
+
     for (const k of keys) {
         value = value?.[k];
     }
-    
+
     return value || key;
 }
 
@@ -157,31 +169,48 @@ function t(key) {
  * 更新 UI 语言
  */
 function updateUILanguage() {
+    document.documentElement.lang = currentLanguage === 'zh' ? 'zh-CN' : 'en';
+
     // 更新标题和副标题
     const title = document.querySelector('h1');
     const subtitle = document.querySelector('.subtitle');
     const enterBtn = document.getElementById('enter-btn');
-    
+
     if (title) title.textContent = t('title');
     if (subtitle) subtitle.textContent = t('subtitle');
     if (enterBtn) enterBtn.textContent = t('enterBtn');
-    
+
     // 更新加载文本
     const loading = document.getElementById('loading-screen');
     if (loading) loading.textContent = t('loading');
-    
+
     // 更新控制按钮
     const btnCollapse = document.getElementById('btn-collapse-all');
     const btnExpand = document.getElementById('btn-expand-all');
     const btnInfo = document.getElementById('btn-info');
-    
-    if (btnCollapse) btnCollapse.title = t('btnCollapse');
-    if (btnExpand) btnExpand.title = t('btnExpand');
-    if (btnInfo) btnInfo.title = t('btnInfo');
-    
+
+    if (btnCollapse) {
+        btnCollapse.title = t('btnCollapse');
+        btnCollapse.setAttribute('aria-label', t('btnCollapse'));
+    }
+    if (btnExpand) {
+        btnExpand.title = t('btnExpand');
+        btnExpand.setAttribute('aria-label', t('btnExpand'));
+    }
+    if (btnInfo) {
+        btnInfo.title = t('btnInfo');
+        btnInfo.setAttribute('aria-label', t('btnInfo'));
+    }
+
+    const langSwitch = document.getElementById('lang-switch');
+    if (langSwitch) langSwitch.setAttribute('aria-label', t('langSwitch'));
+
     // 更新搜索框
     const searchInput = document.getElementById('search-input');
-    if (searchInput) searchInput.placeholder = t('searchPlaceholder');
+    if (searchInput) {
+        searchInput.placeholder = t('searchPlaceholder');
+        searchInput.setAttribute('aria-label', t('searchLabel'));
+    }
 
     // 更新彩蛋按钮与文案
     const originBtn = document.getElementById('origin-btn');
@@ -190,13 +219,22 @@ function updateUILanguage() {
     if (originBtn) originBtn.textContent = t('originBtn');
     if (exitEggBtn) exitEggBtn.textContent = t('exitEggBtn');
     if (easterEggText) easterEggText.textContent = t('easterEggText');
-    
+
     // 更新模态框内容
     document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.getAttribute('data-i18n');
         const translation = t(key);
         if (translation && translation !== key) {
             el.textContent = translation;
+        }
+    });
+
+    document.querySelectorAll('[data-i18n-aria-label]').forEach(el => {
+        const key = el.getAttribute('data-i18n-aria-label');
+        const translation = t(key);
+        if (translation && translation !== key) {
+            el.setAttribute('aria-label', translation);
+            el.title = translation;
         }
     });
 }
@@ -261,7 +299,7 @@ function getLocalizedTimeRange(data) {
  */
 function getLocalizedText(data, field) {
     const lang = currentLanguage;
-    
+
     if (field === 'name') {
         // 名称字段
         if (lang === 'en') {
@@ -292,6 +330,6 @@ function getLocalizedText(data, field) {
             return data.description || data.desc || '暂无详细资料...';
         }
     }
-    
+
     return '';
 }

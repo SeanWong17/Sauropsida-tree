@@ -17,7 +17,7 @@ const APP_CONFIG = {
             max: 80
         }
     },
-    
+
     // 3D 场景配置
     scene3D: {
         helix: {
@@ -34,7 +34,7 @@ const APP_CONFIG = {
             targetZMobile: 1400
         }
     },
-    
+
     // 树形图配置
     tree: {
         width: {
@@ -56,7 +56,7 @@ const APP_CONFIG = {
             }
         }
     },
-    
+
     // 地质年代配置
     geologicalEpochs: [
         { name: { zh: "第四纪", en: "Quaternary" }, start: 0, end: 2.58, color: "#FFF2AE" },
@@ -78,6 +78,14 @@ function isMobile() {
 }
 
 /**
+ * Respect the user's operating-system motion preference.
+ * @returns {boolean}
+ */
+function prefersReducedMotion() {
+    return Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+}
+
+/**
  * 工具函数：获取配置值
  * @param {string} path - 配置路径（用点号分隔）
  * @returns {*} 配置值
@@ -85,10 +93,10 @@ function isMobile() {
 function getConfig(path) {
     const keys = path.split('.');
     let value = APP_CONFIG;
-    
+
     for (const k of keys) {
         value = value?.[k];
     }
-    
+
     return value;
 }

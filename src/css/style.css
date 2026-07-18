@@ -35,7 +35,26 @@ body {
     align-items: center;
     color: var(--accent-color);
     transition: opacity 0.5s;
-    pointer-events: none;
+    pointer-events: auto;
+    flex-direction: column;
+    gap: 16px;
+    padding: 24px;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+#loading-screen .loading-error {
+    max-width: 560px;
+    line-height: 1.6;
+}
+
+#loading-screen .retry-btn {
+    border: 1px solid var(--accent-color);
+    background: transparent;
+    color: var(--accent-color);
+    padding: 10px 20px;
+    cursor: pointer;
+    font: inherit;
 }
 
 /* 转场遮罩 */
@@ -125,6 +144,12 @@ h1 {
     box-shadow: 0 0 30px rgba(197, 160, 89, 0.5);
 }
 
+#enter-btn:disabled {
+    cursor: wait;
+    opacity: 0.45;
+    box-shadow: none;
+}
+
 /* 容器 */
 #container-particles {
     z-index: 0;
@@ -173,6 +198,11 @@ h1 {
     background: transparent;
     cursor: pointer;
     backface-visibility: hidden;
+    border: 0;
+    padding: 0;
+    color: inherit;
+    font: inherit;
+    text-align: inherit;
 }
 
 .card-content {
@@ -322,13 +352,20 @@ h1 {
 }
 
 .search-result-item {
+    display: block;
+    width: 100%;
     padding: 10px 15px;
     cursor: pointer;
+    border: 0;
     border-bottom: 1px solid #eee;
+    background: transparent;
+    font: inherit;
+    text-align: left;
     transition: background 0.2s;
 }
 
-.search-result-item:hover {
+.search-result-item:hover,
+.search-result-item:focus-visible {
     background: #f5f5f5;
 }
 
@@ -475,6 +512,9 @@ h1 {
     z-index: 10;
     padding: 5px;
     line-height: 1;
+    border: 0;
+    background: transparent;
+    font-family: inherit;
 }
 
 .modal-close:hover {
@@ -496,7 +536,7 @@ h1 {
 }
 
 .specimen-title {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Noto Serif SC', 'Playfair Display', serif;
     font-size: 2rem;
     margin: 0 0 5px 0;
     color: #2c241b;
@@ -624,6 +664,21 @@ h1 {
     fill: #c5a059;
     stroke: #f4f1ea;
     stroke-width: 5px;
+}
+
+.node:focus-visible circle,
+.node text:focus-visible {
+    outline: none;
+    stroke: var(--accent-color);
+    stroke-width: 5px;
+    filter: drop-shadow(0 0 8px rgba(197, 160, 89, 0.8));
+}
+
+button:focus-visible,
+input:focus-visible,
+a:focus-visible {
+    outline: 3px solid var(--accent-color);
+    outline-offset: 3px;
 }
 
 .epoch-band {
@@ -894,14 +949,14 @@ h1 {
 
     #origin-btn {
         top: 10px;
-        left: 58px;
-        max-width: calc(100vw - 68px);
+        left: 62px;
+        max-width: calc(50vw - 62px);
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
         font-size: 11px;
         padding: 0 10px;
-        height: 34px;
+        height: 32px;
         line-height: 32px;
     }
 
@@ -921,5 +976,16 @@ h1 {
     .ee-text-main {
         font-size: 1.35rem;
         max-width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
     }
 }

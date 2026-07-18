@@ -1313,7 +1313,7 @@ const sauropsidaData = (() => {
   return {
     meta: {
       project: "Sauropsida Phylogeny",
-      version: "0.2 (enriched data)",
+      version: "1.1.0",
       total_families: families.length,
       total_clades: Object.keys(clades).length,
       total_terminal_orders: families.filter((item) => item.terminal_rank === "order").length,

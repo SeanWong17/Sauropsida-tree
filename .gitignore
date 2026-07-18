@@ -1,7 +1,31 @@
-scripts/
-tools/
-images/
-result/
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Local tooling output
+node_modules/
+.codegraph/
+playwright-report/
+test-results/
 __pycache__/
 *.pyc
+
+# Generated source material; optimized runtime assets are tracked under assets/
+/images/
+/result/
+/tools/
+/data/image_generation_status.json
+
+# Misc
+*.log
+*.tmp
+.tmp_*
 *:Zone.Identifier
