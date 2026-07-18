@@ -91,7 +91,7 @@ const IMAGE_MANIFEST = Object.freeze({
     "Platysternidae": "assets/images/Platysternidae.bca12b2acdb0.webp",
     "Podicipediformes": "assets/images/Podicipediformes.233f88b66ad7.webp",
     "Podocnemididae": "assets/images/Podocnemididae.b81b7283b47d.webp",
-    "Polychrotidae": "assets/images/Polychrotidae.614c550bcfca.webp",
+    "Polychrotidae": "assets/images/Polychrotidae.e8025d6df3d2.webp",
     "Procellariiformes": "assets/images/Procellariiformes.d3fd1c16d678.webp",
     "Pseudoxenodontidae": "assets/images/Pseudoxenodontidae.4f23d03d28ac.webp",
     "Psittaciformes": "assets/images/Psittaciformes.24405facda58.webp",
@@ -116,7 +116,7 @@ const IMAGE_MANIFEST = Object.freeze({
     "Trogonophiidae": "assets/images/Trogonophiidae.72416fefefaf.webp",
     "Tropidophiidae": "assets/images/Tropidophiidae.5b6a8b616c90.webp",
     "Tropiduridae": "assets/images/Tropiduridae.f52379fe09bc.webp",
-    "Typhlopidae": "assets/images/Typhlopidae.2bc2892144ae.webp",
+    "Typhlopidae": "assets/images/Typhlopidae.84206e7dbe56.webp",
     "Uropeltidae": "assets/images/Uropeltidae.1521c12ef596.webp",
     "Varanidae": "assets/images/Varanidae.d9dc6d4384ec.webp",
     "Viperidae": "assets/images/Viperidae.6689c9cb6ab0.webp",
@@ -124,5 +124,5 @@ const IMAGE_MANIFEST = Object.freeze({
     "Xenodermidae": "assets/images/Xenodermidae.cffb46de5801.webp",
     "Xenopeltidae": "assets/images/Xenopeltidae.570a21f30a26.webp",
     "Xenosauridae": "assets/images/Xenosauridae.7af1492edded.webp",
-    "Xenotyphlopidae": "assets/images/Xenotyphlopidae.3cfeb2c4cc77.webp"
+    "Xenotyphlopidae": "assets/images/Xenotyphlopidae.28577c43f9d5.webp"
 });
