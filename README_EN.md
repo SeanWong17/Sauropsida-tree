@@ -25,7 +25,7 @@
 
 **DeepTime Sauropsida** is an interactive browser-based visualization project that reframes living sauropsids within a much longer evolutionary timescale. It combines a 3D helix prologue, a dynamic phylogenetic tree, and node detail cards to present the relationships among birds, crocodilians, turtles, tuataras, and squamates.
 
-The current release uses a display policy of "**orders for birds, families for the remaining extant sauropsid lines**", covering **126 terminal nodes** and **61 internal clade nodes**. For especially dense branches, additional intermediate ranks such as infraorders and superfamilies are inserted to preserve readability.
+The current release uses a display policy of "**families for birds and the remaining extant sauropsid lines**", covering **336 terminal nodes** and **105 internal clade nodes**. Birds follow the **IOC World Bird List v15.2 (2026)** framework of 44 orders and 250 living families; the wholly extinct Mohoidae is outside this project's living scope. For especially dense branches, additional intermediate ranks such as infraorders and superfamilies are inserted to preserve readability.
 
 > **🌟 Highlight:** The project includes a hidden "Origin: The Lost Age of Sauropsids" ghost-tree mode that pulls the camera beyond the living crown groups into the deeper Mesozoic radiation of Sauropsida.
 
@@ -58,7 +58,7 @@ If you want to explore the other surviving amniote branch as well, continue with
 
 ### ⚡ Performance and Usability
 - **Responsive layout**: Separate desktop/mobile parameters for particles, tree width, and initial zoom.
-- **On-demand images**: 126 content-hashed WebP files are mapped by a lightweight manifest instead of one Base64 bundle.
+- **On-demand images**: 336 content-hashed WebP files are mapped by a lightweight manifest instead of one Base64 bundle.
 - **Fully self-hosted**: D3, Three.js, Tween.js, and fonts ship with the project; no third-party CDN is required.
 - **Reliable startup**: Missing dependencies produce a retryable error, while unavailable WebGL falls back to the 2D tree.
 - **Accessible interaction**: Keyboard navigation, dialog focus management, browser zoom, and reduced-motion preferences are supported.
@@ -142,11 +142,11 @@ npm run test:browser
 
 ## 🔬 Data Scope and Notes
 
-* **Taxonomic basis**: primarily **Reptile Database** and **IOC World Bird List**
-* **Hierarchy policy**: terminal nodes are orders for birds and families for the remaining extant sauropsid branches; extra intermediate ranks are inserted for dense clades
+* **Taxonomic basis**: primarily **Reptile Database** and **IOC World Bird List v15.2 (2026)**
+* **Hierarchy policy**: terminal nodes are families for birds and the remaining extant sauropsid branches; the 44 bird orders are internal nodes, and extra intermediate ranks are inserted for dense clades
 * **Time data**: higher clades prioritize commonly cited crown divergence estimates, while terminal-node ages are approximate crown-age values adjusted for visualization
 * **Ghost-tree mode**: extends the dataset with many extinct side branches to show sauropsid expansion and contraction through deep time
-* **Image assets**: all 126 terminal nodes include representative imagery; generative-image anatomy still requires ongoing review
+* **Image assets**: terminal families use representative imagery; generated assets are reviewed for composition, cropped anatomy, residual text, and morphology before being added as content-hashed WebP files
 
 ## 🔧 Customization
 
@@ -172,7 +172,7 @@ tree: {
 
 ## 🤝 Credits & Disclaimer
 
-* **Taxonomy and chronology**: based on Reptile Database, IOC World Bird List, and selected recent phylogenetic studies on major sauropsid lineages
+* **Taxonomy and chronology**: based on Reptile Database, IOC World Bird List v15.2 (2026; DOI: 10.14344/IOC.ML.15.2), and selected recent phylogenetic studies on major sauropsid lineages
 * **Implementation**: built as a pure frontend project with D3.js, Three.js, and Tween.js
 * **Current focus**: the present release prioritizes tree topology, timing structure, and interaction flow; references, illustrations, and node-level detail will continue to be refined
 

@@ -3,17 +3,23 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-function loadGlobalScript(filePath, expression) {
+function loadGlobalScripts(filePaths, expression) {
     const context = {};
     vm.createContext(context);
-    const source = fs.readFileSync(filePath, 'utf8');
-    vm.runInContext(`${source};this.__result=${expression}`, context, { filename: filePath });
+    for (const filePath of filePaths) {
+        const source = fs.readFileSync(filePath, 'utf8');
+        vm.runInContext(source, context, { filename: filePath });
+    }
+    vm.runInContext(`this.__result=${expression}`, context);
     return context.__result;
 }
 
 function validateProject(projectRoot = path.resolve(__dirname, '..')) {
-    const data = loadGlobalScript(path.join(projectRoot, 'data/data.js'), 'sauropsidaData');
-    const manifest = loadGlobalScript(path.join(projectRoot, 'data/images_manifest.js'), 'IMAGE_MANIFEST');
+    const data = loadGlobalScripts([
+        path.join(projectRoot, 'data/bird_families.js'),
+        path.join(projectRoot, 'data/data.js')
+    ], 'sauropsidaData');
+    const manifest = loadGlobalScripts([path.join(projectRoot, 'data/images_manifest.js')], 'IMAGE_MANIFEST');
     const clades = Object.entries(data.clades || {});
     const families = data.families || [];
     const cladeKeys = new Set(clades.map(([key]) => key));
@@ -62,9 +68,12 @@ function validateProject(projectRoot = path.resolve(__dirname, '..')) {
 
     const manifestKeys = Object.keys(manifest);
     if (manifestKeys.length !== families.length) throw new Error('Image manifest count does not match families');
+    const imagePaths = new Set();
     for (const familyKey of familyKeys) {
         const relativePath = manifest[familyKey];
         if (!relativePath) throw new Error(`Missing image manifest entry for ${familyKey}`);
+        if (imagePaths.has(relativePath)) throw new Error(`Image manifest path is reused for ${familyKey}: ${relativePath}`);
+        imagePaths.add(relativePath);
         const imagePath = path.join(projectRoot, relativePath);
         if (!fs.existsSync(imagePath)) throw new Error(`Missing image file for ${familyKey}`);
         const image = fs.readFileSync(imagePath);
@@ -74,6 +83,9 @@ function validateProject(projectRoot = path.resolve(__dirname, '..')) {
         const hashMatch = path.basename(imagePath).match(/\.([a-f0-9]{12})\.webp$/);
         const actualHash = crypto.createHash('sha256').update(image).digest('hex').slice(0, 12);
         if (!hashMatch || hashMatch[1] !== actualHash) throw new Error(`Stale image hash for ${familyKey}`);
+        if (path.basename(imagePath) !== `${familyKey}.${actualHash}.webp`) {
+            throw new Error(`Image filename does not belong to ${familyKey}: ${path.basename(imagePath)}`);
+        }
     }
     for (const manifestKey of manifestKeys) {
         if (!familyKeys.includes(manifestKey)) throw new Error(`Unexpected image manifest entry: ${manifestKey}`);

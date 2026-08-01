@@ -554,6 +554,18 @@ const sauropsidaData = (() => {
     Australaves: "A major landbird radiation containing seriemas, falcons, parrots, and passerines."
   };
 
+  if (typeof BIRD_ORDER_DEFS === "undefined" || typeof BIRD_FAMILY_DEFS === "undefined" || typeof BIRD_FAMILY_BY_KEY === "undefined") {
+    throw new Error("Bird family data must be loaded before data.js");
+  }
+
+  // IOC bird orders are internal nodes; all living bird families are terminals.
+  cladeDefs.push(...BIRD_ORDER_DEFS);
+  const birdTerminalGroups = BIRD_FAMILY_DEFS.map((family) => ({
+    parent: family.order,
+    terminal_rank: "family",
+    items: [[family.family_en, family.family_cn, family.divergence_time_mya]]
+  }));
+
   const terminalGroups = [
     {
       parent: "Trionychoidea",
@@ -1232,8 +1244,8 @@ const sauropsidaData = (() => {
       parent: def.parent,
       divergence_time_mya: def.divergence_time_mya,
       description: def.description,
-      en_description: cladeEnDescriptions[def.id] || "",
-      en_name: def.id
+      en_description: def.en_description || cladeEnDescriptions[def.id] || "",
+      en_name: def.en_name || def.id
     };
   });
 
@@ -1281,23 +1293,54 @@ const sauropsidaData = (() => {
     return `${familyEn} is a living family-level lineage within ${parentId}, shown here as a terminal node in this project.`;
   }
 
+  function birdFamilyDescription(detail, parentId) {
+    const speciesName = detail.representative_species_cn
+      ? `${detail.representative_species}（${detail.representative_species_cn}）`
+      : detail.representative_species;
+    return `${detail.family_cn}是${formatNodeLabel(parentId)}下的现生科级类群；本项目以${speciesName}作为代表物种。`;
+  }
+
+  function birdFamilyEnDescription(detail, parentId) {
+    const commonName = detail.family_common_en ? ` (${detail.family_common_en})` : "";
+    const speciesName = detail.representative_species_en
+      ? `${detail.representative_species} (${detail.representative_species_en})`
+      : detail.representative_species;
+    return `${detail.family_en}${commonName} is a living family within ${parentId}; ${speciesName} is used here as its representative species.`;
+  }
+
   const families = [];
   let terminalId = 1;
 
-  terminalGroups.forEach((group) => {
+  // Superseded bird order terminals remain in the historical source list only;
+  // all current bird terminals are defined from the IOC family roster above.
+  const supersededBirdOrderKeys = new Set(BIRD_ORDER_DEFS.map((order) => order.id));
+  const allTerminalGroups = [
+    ...terminalGroups.filter((group) => !group.items.some(([key]) => supersededBirdOrderKeys.has(key))),
+    ...birdTerminalGroups
+  ];
+
+  allTerminalGroups.forEach((group) => {
     group.items.forEach(([familyEn, familyCn, time]) => {
-      const detail = terminalDetails[familyEn] || {};
+      const birdDetail = BIRD_FAMILY_BY_KEY[familyEn];
+      const detail = birdDetail || terminalDetails[familyEn] || {};
       families.push({
         id: terminalId++,
         family_cn: familyCn,
         family_en: familyEn,
         representative_species: detail.representative_species || "",
+        representative_species_en: detail.representative_species_en || "",
+        representative_species_cn: detail.representative_species_cn || "",
+        family_common_en: detail.family_common_en || "",
         image_url: `images/${familyEn}.png`,
         taxonomy: buildTaxonomy(group.parent),
         parent_node: formatNodeLabel(group.parent),
         parent_rank: clades[group.parent].rank,
-        description: detail.description || defaultTerminalDescription(familyCn, group.parent, group.terminal_rank),
-        en_description: detail.en_description || terminalEnDescriptions[familyEn] || defaultTerminalEnDescription(familyEn, group.parent, group.terminal_rank),
+        description: birdDetail
+          ? birdFamilyDescription(birdDetail, group.parent)
+          : detail.description || defaultTerminalDescription(familyCn, group.parent, group.terminal_rank),
+        en_description: birdDetail
+          ? birdFamilyEnDescription(birdDetail, group.parent)
+          : detail.en_description || terminalEnDescriptions[familyEn] || defaultTerminalEnDescription(familyEn, group.parent, group.terminal_rank),
         divergence_time_mya: time,
         time_note: "此节点时间为便于可视化整理的近似冠群分化时间，宜视为区间估计而非单点定年。",
         time_note_en: "This age is an approximate crown-age estimate used for visualization and should be treated as a range rather than a point date.",
@@ -1318,11 +1361,12 @@ const sauropsidaData = (() => {
       total_clades: Object.keys(clades).length,
       total_terminal_orders: families.filter((item) => item.terminal_rank === "order").length,
       total_terminal_families: families.filter((item) => item.terminal_rank === "family").length,
-      scope: "现生蜥形纲；鸟类整理到目，其余整理到科",
+      scope: "现生蜥形纲；鸟类依 IOC World Bird List v15.2 整理到科，其余整理到科",
       time_basis: "高阶节点优先采用文献常见冠群分化时间；末级节点为便于可视化而整理的近似冠群时间",
       sources: [
         "Reptile Database（现生爬行动物高阶分类）",
-        "IOC World Bird List（现生鸟类目级框架）",
+        "IOC World Bird List v15.2（2026；现生鸟类目-科框架，DOI: 10.14344/IOC.ML.15.2）",
+        "IOC World Bird List v15.2 Multilingual Version；Wikidata 中文分类单元标签（科名交叉核对）",
         "Jones et al. 2013；Thomson et al. 2021；近期鸟类与鳄类系统发育研究（高阶冠群时间参考）"
       ]
     },

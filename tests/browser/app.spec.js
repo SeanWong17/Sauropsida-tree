@@ -7,11 +7,12 @@ test.beforeEach(async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
 });
 
-test('loads only local dependencies and independent image assets', async ({ page }) => {
+test('loads only local dependencies and independent image assets', async ({ page }, testInfo) => {
     const externalRequests = [];
+    const baseURL = testInfo.project.use.baseURL || 'http://127.0.0.1:4173';
     page.on('request', request => {
         const url = request.url();
-        if (!url.startsWith('http://127.0.0.1:4173')) externalRequests.push(url);
+        if (!url.startsWith(baseURL)) externalRequests.push(url);
     });
 
     const response = await page.goto('/');

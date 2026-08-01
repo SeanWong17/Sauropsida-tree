@@ -18,6 +18,7 @@
     <script defer src="vendor/CSS3DRenderer.js"></script>
     <script defer src="vendor/OrbitControls.js"></script>
     <script defer src="vendor/tween.umd.js"></script>
+    <script defer src="data/bird_families.js"></script>
     <script defer src="data/data.js"></script>
     <script defer src="data/images_manifest.js"></script>
     <script defer src="src/js/easter_egg_data.js"></script>
@@ -88,16 +89,16 @@
                 <h3 data-i18n="dataTitle">数据与技术说明</h3>
                 <ul>
                     <li><strong data-i18n="dataSource">数据基准</strong><span data-i18n="dataSourceDesc">：分类系统主要参考 Reptile Database 与 IOC World Bird List；层级上对节点过密的支系补入了总科、下目等中间层。</span></li>
-                    <li><strong data-i18n="birdBackbone">鸟类主干</strong><span data-i18n="birdBackboneDesc">：鸟类末级采用 IOC 当前目级框架；Neoaves 内部主干优先参照近年广泛使用的系统发育结果，避免沿用已被并回的旧目级拆分。</span></li>
+                    <li><strong data-i18n="birdBackbone">鸟类主干</strong><span data-i18n="birdBackboneDesc">：鸟类依 IOC World Bird List v15.2 展开至科；Neoaves 内部主干优先参照近年广泛使用的系统发育结果。</span></li>
                     <li><strong data-i18n="timeScale">时间标尺</strong><span data-i18n="timeScaleDesc">：高阶节点优先参考文献常见的冠群分化时间；末级节点时间为便于可视化整理的近似冠群时间。</span></li>
-                    <li><strong data-i18n="imageGen">图像生成</strong><span data-i18n="imageGenDesc">：126 个末级类群均配有代表物种图像；生成式图像可能存在细节偏差，欢迎反馈校正。</span></li>
+                    <li><strong data-i18n="imageGen">图像生成</strong><span data-i18n="imageGenDesc">：末级科均以代表物种配图；生成式图像经审核后以内容哈希 WebP 接入。</span></li>
                     <li><strong data-i18n="techStack">技术架构</strong><span data-i18n="techStackDesc">：本项目基于 D3.js (2D) 与 Three.js (3D) 混合开发，图像使用内容哈希命名的 WebP 文件按需加载。</span></li>
                 </ul>
 
                 <h3 data-i18n="sourcesTitle">参考来源</h3>
                 <ul>
                     <li><a href="https://reptile-database.reptarium.cz/" target="_blank" rel="noopener noreferrer">Reptile Database</a></li>
-                    <li><a href="https://www.worldbirdnames.org/new/bow/orders/" target="_blank" rel="noopener noreferrer">IOC World Bird List - Orders (v15.1; updated 2025-02-20)</a></li>
+                    <li><a href="https://www.worldbirdnames.org/new/ioc-lists/master-list-2/" target="_blank" rel="noopener noreferrer">IOC World Bird List - Master Lists (v15.2, 2026)</a></li>
                     <li><a href="https://www.pnas.org/doi/10.1073/pnas.1509211112" target="_blank" rel="noopener noreferrer">Prum et al. 2015 - A comprehensive phylogeny of birds</a></li>
                     <li><a href="https://www.cell.com/current-biology/fulltext/S0960-9822(13)00711-7" target="_blank" rel="noopener noreferrer">Jones et al. 2013 - The evolutionary history of sauropsids</a></li>
                     <li><a href="https://academic.oup.com/sysbio/article/70/5/896/6046485" target="_blank" rel="noopener noreferrer">Thomson et al. 2021 - Turtles and the age of crown Testudines</a></li>

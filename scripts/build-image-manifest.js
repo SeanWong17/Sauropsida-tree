@@ -8,6 +8,10 @@ const imageDir = path.join(projectRoot, 'assets/images');
 const context = {};
 vm.createContext(context);
 vm.runInContext(
+    fs.readFileSync(path.join(projectRoot, 'data/bird_families.js'), 'utf8'),
+    context
+);
+vm.runInContext(
     `${fs.readFileSync(path.join(projectRoot, 'data/data.js'), 'utf8')};this.data=sauropsidaData`,
     context
 );
