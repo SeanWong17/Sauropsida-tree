@@ -32,6 +32,14 @@ function validateProject(projectRoot = path.resolve(__dirname, '..')) {
     if (allKeys.size !== cladeKeys.size + familyKeys.length) throw new Error('Clade/family key collision found');
     if (data.meta?.total_clades !== clades.length) throw new Error('Clade metadata count is stale');
     if (data.meta?.total_families !== families.length) throw new Error('Family metadata count is stale');
+    for (const family of families) {
+        if (typeof family.description !== 'string' || !family.description.trim()) {
+            throw new Error(`Missing description for ${family.family_en}`);
+        }
+        if (family.description.includes('本项目')) {
+            throw new Error(`Project-scoped description is not allowed for ${family.family_en}`);
+        }
+    }
 
     const visitState = new Map();
     const visit = key => {

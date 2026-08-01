@@ -103,6 +103,20 @@ test('tree details dialog supports keyboard opening, closing, and focus restore'
     await expect(homalopsidaeText).toBeFocused();
 });
 
+test('bird family details show their curated description', async ({ page }) => {
+    await page.goto('/');
+    await page.click('#enter-btn');
+    const ostrichText = page.locator('.node text[aria-label="查看详情: 鸵鸟科"]');
+    await ostrichText.focus();
+    await page.keyboard.press('Enter');
+
+    await expect(page.locator('#modal')).toHaveAttribute('aria-hidden', 'false');
+    await expect(page.locator('#modal-desc')).toHaveText(
+        '鸵鸟科为非洲开阔地的大型平胸鸟，双趾和强健后肢特别适于高速奔跑。'
+    );
+    await expect(page.locator('#modal-desc')).not.toContainText('本项目');
+});
+
 test('viewport allows zoom and layout does not overflow horizontally', async ({ page }) => {
     await page.goto('/');
     const viewport = await page.locator('meta[name="viewport"]').getAttribute('content');

@@ -1279,33 +1279,29 @@ const sauropsidaData = (() => {
 
   function defaultTerminalDescription(cnName, parentId, terminalRank) {
     if (terminalRank === "order") {
-      return `${cnName}是现生鸟类中的一个目级冠群，在本项目中作为鸟纲的末级节点展示。`;
+      return `${cnName}是现生鸟类中的一个目级冠群。`;
     }
 
-    return `${cnName}是${formatNodeLabel(parentId)}下的现生科级类群，在本项目中作为末级节点展示。`;
+    return `${cnName}是${formatNodeLabel(parentId)}下的现生科级类群。`;
   }
 
   function defaultTerminalEnDescription(familyEn, parentId, terminalRank) {
     if (terminalRank === "order") {
-      return `${familyEn} is an order-level crown group of living birds and is shown here as a terminal bird node.`;
+      return `${familyEn} is an order-level crown group of living birds.`;
     }
 
-    return `${familyEn} is a living family-level lineage within ${parentId}, shown here as a terminal node in this project.`;
+    return `${familyEn} is a living family-level lineage within ${parentId}.`;
   }
 
-  function birdFamilyDescription(detail, parentId) {
-    const speciesName = detail.representative_species_cn
-      ? `${detail.representative_species}（${detail.representative_species_cn}）`
-      : detail.representative_species;
-    return `${detail.family_cn}是${formatNodeLabel(parentId)}下的现生科级类群；本项目以${speciesName}作为代表物种。`;
+  function birdFamilyDescription(detail) {
+    const description = BIRD_FAMILY_DESCRIPTIONS[detail.family_en];
+    if (!description) throw new Error(`Missing bird-family description for ${detail.family_en}`);
+    return description;
   }
 
   function birdFamilyEnDescription(detail, parentId) {
     const commonName = detail.family_common_en ? ` (${detail.family_common_en})` : "";
-    const speciesName = detail.representative_species_en
-      ? `${detail.representative_species} (${detail.representative_species_en})`
-      : detail.representative_species;
-    return `${detail.family_en}${commonName} is a living family within ${parentId}; ${speciesName} is used here as its representative species.`;
+    return `${detail.family_en}${commonName} is a living family within ${parentId}.`;
   }
 
   const families = [];
@@ -1336,7 +1332,7 @@ const sauropsidaData = (() => {
         parent_node: formatNodeLabel(group.parent),
         parent_rank: clades[group.parent].rank,
         description: birdDetail
-          ? birdFamilyDescription(birdDetail, group.parent)
+          ? birdFamilyDescription(birdDetail)
           : detail.description || defaultTerminalDescription(familyCn, group.parent, group.terminal_rank),
         en_description: birdDetail
           ? birdFamilyEnDescription(birdDetail, group.parent)

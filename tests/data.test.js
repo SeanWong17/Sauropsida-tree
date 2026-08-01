@@ -19,7 +19,7 @@ function loadBirdDefinitions() {
     const context = {};
     vm.createContext(context);
     vm.runInContext(fs.readFileSync(path.join(projectRoot, 'data/bird_families.js'), 'utf8'), context);
-    vm.runInContext('this.definitions={ orders: BIRD_ORDER_DEFS, families: BIRD_FAMILY_DEFS }', context);
+    vm.runInContext('this.definitions={ orders: BIRD_ORDER_DEFS, families: BIRD_FAMILY_DEFS, descriptions: BIRD_FAMILY_DESCRIPTIONS }', context);
     return JSON.parse(JSON.stringify(context.definitions));
 }
 
@@ -71,8 +71,20 @@ test('living birds follow the IOC v15.2 family-level roster', () => {
     assert.equal(definitions.families.length, 250);
     assert.equal(definitions.families.filter(family => family.reuse_image_from).length, 40);
     assert.ok(definitions.families.every(family => family.family_cn.endsWith('科')));
+    assert.deepEqual(
+        Object.keys(definitions.descriptions).sort(),
+        definitions.families.map(family => family.family_en).sort()
+    );
+    assert.ok(Object.values(definitions.descriptions).every(description => (
+        typeof description === 'string'
+        && description.length >= 12
+        && !description.includes('本项目')
+        && description.endsWith('。')
+        && (description.match(/。/g) || []).length === 1
+    )));
     assert.equal(birdFamilies.length, 250);
     assert.ok(birdFamilies.every(family => family.terminal_rank === 'family'));
+    assert.ok(birdFamilies.every(family => family.description === definitions.descriptions[family.family_en]));
     assert.equal(familyParents.size, 44);
     assert.ok([...familyParents].every(parent => data.clades[parent]?.rank === 'order'));
     assert.ok(!definitions.families.some(family => family.family_en === 'Mohoidae'));
