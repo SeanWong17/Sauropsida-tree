@@ -21,6 +21,8 @@
 
 ---
 
+> **🌍 完整脊索动物图谱：** 想从蜥形纲继续探索鱼类、两栖类与哺乳类，请进入 [DeepTime Chordata](https://github.com/SeanWong17/Chordata-atlas)。
+
 ## 📖 简介 (Introduction)
 
 **DeepTime Sauropsida** 是一个运行于现代浏览器端的交互式数据可视化项目，尝试把现生蜥形纲重新放回更长的演化时间轴中展示。项目以 3D 螺旋序幕、动态演化树和节点资料卡的组合方式，呈现鸟类、鳄类、龟鳖类、喙头类与有鳞类之间的系统关系。

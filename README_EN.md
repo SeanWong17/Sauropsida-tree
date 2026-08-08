@@ -21,6 +21,8 @@
 
 ---
 
+> **🌍 Full Chordate Atlas:** Continue from sauropsids into fishes, amphibians, and mammals in [DeepTime Chordata](https://github.com/SeanWong17/Chordata-atlas).
+
 ## 📖 Introduction
 
 **DeepTime Sauropsida** is an interactive browser-based visualization project that reframes living sauropsids within a much longer evolutionary timescale. It combines a 3D helix prologue, a dynamic phylogenetic tree, and node detail cards to present the relationships among birds, crocodilians, turtles, tuataras, and squamates.
